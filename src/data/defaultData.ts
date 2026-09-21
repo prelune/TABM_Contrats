@@ -134,6 +134,7 @@ Le présent engagement est conclu sous réserve des résultats concluants de la 
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
     isMandatory: true,
+    isRecommended: false,
     order: 1,
   },
   {
@@ -149,6 +150,7 @@ Conformément à l'article L. 1243-13 du Code du travail, le présent contrat po
     validContractTypes: ['cdd', 'avenant_cdd'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
     isMandatory: true,
+    isRecommended: false,
     order: 2,
   },
   {
@@ -162,6 +164,7 @@ Il est subordonné à une période d’essai de {{periode_essai}} de travail eff
     validContractTypes: ['cdi'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
     isMandatory: true,
+    isRecommended: false,
     order: 2,
   },
   {
@@ -175,6 +178,7 @@ Le salarié s'engage à exécuter ses tâches avec toute la conscience professio
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
     isMandatory: true,
+    isRecommended: false,
     order: 3,
   },
   {
@@ -187,7 +191,8 @@ Le salarié s'engage à exécuter ses tâches avec toute la conscience professio
 Compte tenu de la nature des activités de transport de l'entreprise, le salarié reconnaît et accepte expressément que son lieu d'exercice pourra varier en fonction des lignes, des services confiés ou des réorganisations de desserte au sein de la zone géographique suivante : {{zone_mobilite}}.`,
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
-    isMandatory: false,
+    isMandatory: true,
+    isRecommended: false,
     order: 4,
   },
   {
@@ -201,6 +206,7 @@ Les horaires de travail ainsi que les tableaux de roulement ou feuilles de servi
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
     isMandatory: true,
+    isRecommended: false,
     order: 5,
   },
   {
@@ -219,6 +225,7 @@ Les horaires de travail ainsi que les tableaux de roulement ou feuilles de servi
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
     isMandatory: true,
+    isRecommended: false,
     order: 6,
   },
   {
@@ -234,6 +241,7 @@ Le salarié s'engage également à utiliser sa carte de conducteur numérique co
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['conducteur'],
     isMandatory: true,
+    isRecommended: false,
     order: 7,
   },
   {
@@ -248,6 +256,7 @@ Il est strictement interdit de conduire sous l'emprise de l'alcool, de stupéfia
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['conducteur', 'ouvrier'],
     isMandatory: false,
+    isRecommended: true,
     order: 8,
   },
   {
@@ -260,7 +269,8 @@ Il est strictement interdit de conduire sous l'emprise de l'alcool, de stupéfia
 Cette obligation de confidentialité survivra à la rupture du présent contrat de travail, quelle qu'en soit la cause.`,
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
-    isMandatory: true,
+    isMandatory: false,
+    isRecommended: true,
     order: 9,
   },
   {
@@ -274,6 +284,7 @@ Cette interdiction est limitée à un rayon de 50 kilomètres autour du siège d
     validContractTypes: ['cdi', 'avenant_cdi'],
     validStatuses: ['maitrise', 'haute_maitrise', 'cadre'],
     isMandatory: false,
+    isRecommended: false,
     order: 10,
   },
   {
@@ -287,6 +298,7 @@ Les cotisations y afférentes sont réparties entre l'employeur et le salarié c
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
     isMandatory: true,
+    isRecommended: false,
     order: 11,
   },
   {
@@ -300,6 +312,7 @@ Le motif de recours initial ({{motif_recours}}) demeure inchangé. L'ensemble de
     validContractTypes: ['avenant_cdd'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
     isMandatory: true,
+    isRecommended: false,
     order: 2,
   },
   {
@@ -314,6 +327,7 @@ Le salarié exercera les fonctions de {{metier}} (Coefficient {{coefficient}}) p
     validContractTypes: ['avenant_cdi'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
     isMandatory: true,
+    isRecommended: false,
     order: 2,
   },
   {
@@ -327,6 +341,7 @@ Les congés payés acquis et non soldés font l'objet d'un transfert financier e
     validContractTypes: ['convention_tripartite'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
     isMandatory: true,
+    isRecommended: false,
     order: 12,
   },
 ];

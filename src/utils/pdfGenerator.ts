@@ -89,65 +89,90 @@ export function printContractDocument(elementId: string): void {
     return;
   }
 
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) {
+  try {
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      window.print();
+      return;
+    }
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html lang="fr">
+        <head>
+          <meta charset="utf-8">
+          <title>Impression Contrat - TABM</title>
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 15mm 15mm 15mm 15mm;
+            }
+            body {
+              font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+              color: #111827;
+              background: #fff;
+              line-height: 1.5;
+              font-size: 11pt;
+              margin: 0;
+              padding: 0;
+            }
+            .contract-page {
+              max-width: 100%;
+              margin: 0 auto;
+            }
+            h1, h2, h3, h4 {
+              color: #0f172a;
+            }
+            .article-block {
+              margin-bottom: 1.25rem;
+              page-break-inside: avoid;
+            }
+            .signatures-block {
+              margin-top: 2.5rem;
+              page-break-inside: avoid;
+            }
+            table {
+              width: 100%;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="contract-page">
+            ${element.innerHTML}
+          </div>
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (err) {
+        console.warn('Iframe print failed, falling back to window.print', err);
+        window.print();
+      } finally {
+        setTimeout(() => {
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+        }, 3000);
+      }
+    }, 400);
+  } catch (e) {
+    console.warn('Fallback print:', e);
     window.print();
-    return;
   }
-
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html lang="fr">
-      <head>
-        <meta charset="utf-8">
-        <title>Impression Contrat - TABM</title>
-        <style>
-          @page {
-            size: A4 portrait;
-            margin: 15mm 15mm 15mm 15mm;
-          }
-          body {
-            font-family: Georgia, Cambria, "Times New Roman", Times, serif;
-            color: #111827;
-            background: #fff;
-            line-height: 1.5;
-            font-size: 11pt;
-            margin: 0;
-            padding: 0;
-          }
-          .contract-page {
-            max-width: 100%;
-            margin: 0 auto;
-          }
-          h1, h2, h3, h4 {
-            color: #0f172a;
-          }
-          .article-block {
-            margin-bottom: 1.25rem;
-            page-break-inside: avoid;
-          }
-          .signatures-block {
-            margin-top: 2.5rem;
-            page-break-inside: avoid;
-          }
-          table {
-            width: 100%;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="contract-page">
-          ${element.innerHTML}
-        </div>
-      </body>
-    </html>
-  `);
-
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => {
-    printWindow.print();
-    printWindow.close();
-  }, 350);
 }
 

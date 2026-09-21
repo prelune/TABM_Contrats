@@ -62,6 +62,7 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
     validContractTypes: ContractType[];
     validStatuses: EmployeeStatus[];
     isMandatory: boolean;
+    isRecommended: boolean;
     order: number;
   }>({
     code: '',
@@ -71,6 +72,7 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
     validContractTypes: ['cdi', 'cdd'],
     validStatuses: ['conducteur', 'employé', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
     isMandatory: false,
+    isRecommended: false,
     order: 1,
   });
 
@@ -84,6 +86,7 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
       validContractTypes: ['cdi', 'cdd'],
       validStatuses: ['conducteur', 'employé', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
       isMandatory: false,
+      isRecommended: false,
       order: articles.length + 1,
     });
     setIsModalOpen(true);
@@ -99,6 +102,7 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
       validContractTypes: [...article.validContractTypes],
       validStatuses: [...article.validStatuses],
       isMandatory: !!article.isMandatory,
+      isRecommended: !!article.isRecommended,
       order: article.order,
     });
     setIsModalOpen(true);
@@ -151,6 +155,7 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
         validContractTypes: formData.validContractTypes,
         validStatuses: formData.validStatuses,
         isMandatory: formData.isMandatory,
+        isRecommended: formData.isRecommended,
         order: Number(formData.order),
       });
     } else {
@@ -162,6 +167,7 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
         validContractTypes: formData.validContractTypes,
         validStatuses: formData.validStatuses,
         isMandatory: formData.isMandatory,
+        isRecommended: formData.isRecommended,
         order: Number(formData.order),
       });
     }
@@ -283,8 +289,13 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
                     {art.category}
                   </span>
                   {art.isMandatory && (
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200">
                       Obligatoire
+                    </span>
+                  )}
+                  {art.isRecommended && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                      Recommandé
                     </span>
                   )}
                   <span className="text-xs text-slate-400">Ordre #{art.order}</span>
@@ -458,18 +469,55 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
                       className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                     />
                   </div>
+                </div>
 
-                  <div className="flex items-center pt-6">
-                    <label className="flex items-center cursor-pointer text-xs font-semibold text-slate-700">
-                      <input
-                        type="checkbox"
-                        checked={formData.isMandatory}
-                        onChange={(e) => setFormData({ ...formData, isMandatory: e.target.checked })}
-                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 mr-2 w-4 h-4"
-                      />
-                      Clause obligatoire par défaut
-                    </label>
-                  </div>
+                {/* Legal / Operational Status */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <label className="flex items-center space-x-3 p-2 bg-white rounded-lg border border-slate-200 cursor-pointer hover:border-rose-300 transition">
+                    <input
+                      type="checkbox"
+                      checked={formData.isMandatory}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setFormData({
+                          ...formData,
+                          isMandatory: checked,
+                          isRecommended: checked ? false : formData.isRecommended,
+                        });
+                      }}
+                      className="rounded border-slate-300 text-rose-600 focus:ring-rose-500 w-4 h-4"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-rose-800 flex items-center">
+                        <span className="w-2 h-2 rounded-full bg-rose-500 mr-1.5"></span>
+                        Clause Obligatoire
+                      </span>
+                      <p className="text-[11px] text-slate-500">Exigée par la loi / convention</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center space-x-3 p-2 bg-white rounded-lg border border-slate-200 cursor-pointer hover:border-amber-300 transition">
+                    <input
+                      type="checkbox"
+                      checked={formData.isRecommended}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setFormData({
+                          ...formData,
+                          isRecommended: checked,
+                          isMandatory: checked ? false : formData.isMandatory,
+                        });
+                      }}
+                      className="rounded border-slate-300 text-amber-600 focus:ring-amber-500 w-4 h-4"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-amber-800 flex items-center">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 mr-1.5"></span>
+                        Clause Recommandée
+                      </span>
+                      <p className="text-[11px] text-slate-500">Sécurité transport / loyauté</p>
+                    </div>
+                  </label>
                 </div>
 
                 {/* Requirements: Valid Contract Types (Multi-choice) */}

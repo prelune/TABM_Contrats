@@ -55,6 +55,7 @@ export default function App() {
   
   // Data for wizard when duplicating an existing contract
   const [wizardPrefillData, setWizardPrefillData] = useState<Partial<ContractEmployeeData> | undefined>(undefined);
+  const [wizardPrefillArticles, setWizardPrefillArticles] = useState<string[] | undefined>(undefined);
 
   const showToast = (text: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToastMessage({ text, type });
@@ -141,6 +142,7 @@ export default function App() {
       // If duplicating a CDD, maybe they want an avenant or CDI
       contractType: contract.employeeData.contractType === 'cdd' ? 'avenant_cdi' : contract.employeeData.contractType,
     });
+    setWizardPrefillArticles([...contract.selectedArticleIds]);
     setActiveTab('generator');
     showToast(`Données de ${contract.employeeData.firstName} ${contract.employeeData.lastName} pré-remplies pour un nouveau contrat.`, 'info');
   };
@@ -392,6 +394,7 @@ export default function App() {
                 onSaveTemplate={handleSaveTemplate}
                 onOpenTagsModal={() => setIsTagsModalOpen(true)}
                 initialEmployeeData={wizardPrefillData}
+                initialArticleIds={wizardPrefillArticles}
               />
             )}
 

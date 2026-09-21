@@ -19,7 +19,7 @@ export function formatDateFrench(dateString?: string): string {
   }).format(date);
 }
 
-export function calculateSalary(coefficient: number, pointValue: number, additionalBonus = 0): {
+export function calculateSalary(coefficient: number, pointValue: number, additionalBonus = 0, weeklyHours = 35): {
   monthlyGrossSalary: number;
   hourlyRate: number;
   monthlyHours: number;
@@ -28,7 +28,8 @@ export function calculateSalary(coefficient: number, pointValue: number, additio
   const pt = Number(pointValue) || 0;
   const baseSalary = Number((coeff * pt).toFixed(2));
   const totalMonthly = baseSalary + (Number(additionalBonus) || 0);
-  const monthlyHours = Number((35 * 52 / 12).toFixed(2)); // standard 151.67h
+  const hours = Number(weeklyHours) > 0 ? Number(weeklyHours) : 35;
+  const monthlyHours = Number(((hours * 52) / 12).toFixed(2)); // e.g. 151.67h for 35h
   const hourlyRate = monthlyHours > 0 ? Number((totalMonthly / monthlyHours).toFixed(2)) : 0;
 
   return {

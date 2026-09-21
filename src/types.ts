@@ -31,7 +31,8 @@ export interface ContractArticle {
   content: string; // Contains {{tags}}
   validContractTypes: ContractType[];
   validStatuses: EmployeeStatus[];
-  isMandatory?: boolean;
+  isMandatory?: boolean; // Légalement obligatoire (Code du travail, convention collective)
+  isRecommended?: boolean; // Recommandé (bonnes pratiques d'exploitation transport)
   order: number;
 }
 
