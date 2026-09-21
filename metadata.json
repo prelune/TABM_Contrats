@@ -1,0 +1,6 @@
+{
+  "name": "TABM-Contrats",
+  "description": "Générateur et gestionnaire de contrats de travail pour société de transport : clauses personnalisées, calcul de salaire par coefficient, modèles, suivi des signatures et sauvegarde Excel locale.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
