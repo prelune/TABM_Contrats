@@ -15,7 +15,14 @@ import {
   AlertCircle,
   Clock,
   ArrowRight,
-  ShieldAlert
+  ShieldAlert,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
+  RefreshCw,
+  Network,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import { 
   AppDatabase, 
@@ -23,11 +30,79 @@ import {
   ContractType, 
   EmployeeStatus, 
   ContractTemplate, 
-  GeneratedContract 
+  GeneratedContract,
+  ContractArticle
 } from '../../types';
 import { CONTRACT_TYPE_LABELS, EMPLOYEE_STATUS_LABELS } from '../../data/defaultData';
-import { calculateSalary, formatEuro } from '../../utils/contractCompiler';
+import { calculateSalary, formatEuro, stripArticlePrefix } from '../../utils/contractCompiler';
 import { ContractPreviewModal } from './ContractPreviewModal';
+
+interface ContractBlockConfig {
+  id: string;
+  typeKey?: ContractType;
+  title: string;
+  shortLabel: string;
+  description: string;
+  badgeColor: string;
+  filterFn: (art: ContractArticle) => boolean;
+}
+
+const CONTRACT_BLOCKS: ContractBlockConfig[] = [
+  {
+    id: 'block-cdi',
+    typeKey: 'cdi',
+    title: '1. Contrat CDI',
+    shortLabel: 'CDI',
+    description: 'Clauses spécifiques au contrat à durée indéterminée',
+    badgeColor: 'blue',
+    filterFn: (art) => art.validContractTypes.includes('cdi') && (art.validContractTypes.length <= 2 || art.id.includes('cdi') || art.code.includes('CDI')),
+  },
+  {
+    id: 'block-cdd',
+    typeKey: 'cdd',
+    title: '2. Contrat CDD',
+    shortLabel: 'CDD',
+    description: 'Terme précis, motif de recours légal, et remplacement',
+    badgeColor: 'amber',
+    filterFn: (art) => art.validContractTypes.includes('cdd') && (art.validContractTypes.length <= 2 || art.id.includes('cdd') || art.code.includes('CDD')),
+  },
+  {
+    id: 'block-avenant-cdd',
+    typeKey: 'avenant_cdd',
+    title: '3. Avenant CDD',
+    shortLabel: 'Avenant CDD',
+    description: 'Renouvellement et prolongation de mission CDD',
+    badgeColor: 'orange',
+    filterFn: (art) => art.validContractTypes.includes('avenant_cdd') && (art.validContractTypes.length <= 2 || art.id.includes('avenant-cdd') || art.code.includes('AVENANT-CDD') || art.id.includes('cdd-duree')),
+  },
+  {
+    id: 'block-avenant-cdi',
+    typeKey: 'avenant_cdi',
+    title: '4. Avenant passage en CDI',
+    shortLabel: 'Passage en CDI',
+    description: 'Transformation CDD en CDI et reprise d’ancienneté',
+    badgeColor: 'purple',
+    filterFn: (art) => art.validContractTypes.includes('avenant_cdi') && (art.validContractTypes.length <= 2 || art.id.includes('avenant-passage-cdi') || art.id.includes('avenant-cdi') || art.code.includes('AVENANT-CDI') || art.id.includes('non-concurrence')),
+  },
+  {
+    id: 'block-tripartite',
+    typeKey: 'convention_tripartite',
+    title: '5. Convention Tripartite',
+    shortLabel: 'Tripartite',
+    description: 'Mutation inter-entreprises du transport et continuité',
+    badgeColor: 'teal',
+    filterFn: (art) => art.validContractTypes.includes('convention_tripartite') && (art.validContractTypes.length <= 2 || art.id.includes('tripartite') || art.code.includes('TRIPARTITE')),
+  },
+  {
+    id: 'block-communs',
+    title: '6. Clauses Communes & Générales',
+    shortLabel: 'Clauses Communes',
+    description: 'Engagement, rémunération coefficient/point, horaires, sécurité transport',
+    badgeColor: 'emerald',
+    filterFn: (art) => art.validContractTypes.length > 2 && !art.id.includes('cdi-prise-effet') && !art.id.includes('cdd-duree') && !art.id.includes('tripartite') && !art.id.includes('avenant'),
+  },
+];
+
 
 interface ContractWizardProps {
   db: AppDatabase;
@@ -93,6 +168,20 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
   const [selectedArticleIds, setSelectedArticleIds] = useState<string[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
 
+  // 6 Contract Blocks state
+  const getBlockIdForContractType = (type: ContractType): string => {
+    switch (type) {
+      case 'cdi': return 'block-cdi';
+      case 'cdd': return 'block-cdd';
+      case 'avenant_cdd': return 'block-avenant-cdd';
+      case 'avenant_cdi': return 'block-avenant-cdi';
+      case 'convention_tripartite': return 'block-tripartite';
+      default: return 'block-cdi';
+    }
+  };
+
+  const [expandedBlockIds, setExpandedBlockIds] = useState<string[]>(['block-cdi', 'block-communs']);
+
   // Modals
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [generatedContractNumber, setGeneratedContractNumber] = useState('');
@@ -123,16 +212,57 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     }));
   }, [formData.coefficient, db.settings.pointValue, formData.additionalBonus, formData.weeklyHours]);
 
-  // Auto-suggest articles when contract type or status changes
+  // Auto-suggest articles and open matching block when contract type or status changes
   useEffect(() => {
-    // If no template is strictly locking the selection, auto-select all compatible articles
     const compatible = db.articles.filter(
       (art) =>
         art.validContractTypes.includes(formData.contractType) &&
         art.validStatuses.includes(formData.status)
     );
     setSelectedArticleIds(compatible.map((a) => a.id));
+
+    const currentBlock = getBlockIdForContractType(formData.contractType);
+    setExpandedBlockIds([currentBlock, 'block-communs']);
   }, [formData.contractType, formData.status, db.articles]);
+
+  const toggleBlockExpanded = (blockId: string) => {
+    setExpandedBlockIds((prev) =>
+      prev.includes(blockId) ? prev.filter((id) => id !== blockId) : [...prev, blockId]
+    );
+  };
+
+  const handleSelectAllInBlock = (blockArticles: ContractArticle[]) => {
+    const idsToAdd = blockArticles.map((a) => a.id);
+    setSelectedArticleIds((prev) => Array.from(new Set([...prev, ...idsToAdd])));
+  };
+
+  const handleDeselectAllInBlock = (blockArticles: ContractArticle[]) => {
+    const idsToRemove = new Set(blockArticles.map((a) => a.id));
+    setSelectedArticleIds((prev) => prev.filter((id) => !idsToRemove.has(id)));
+  };
+
+  // Calculate sequential position for each selected article (1, 2, 3...)
+  const sortedSelectedArticles = db.articles
+    .filter((a) => selectedArticleIds.includes(a.id))
+    .sort((a, b) => a.order - b.order);
+
+  const getArticleSequenceNumber = (articleId: string): number | null => {
+    const idx = sortedSelectedArticles.findIndex((a) => a.id === articleId);
+    return idx !== -1 ? idx + 1 : null;
+  };
+
+  const getBlockArticles = (block: ContractBlockConfig): ContractArticle[] => {
+    return db.articles
+      .filter((art) => {
+        if (block.filterFn(art)) return true;
+        if (block.typeKey && art.validContractTypes.includes(block.typeKey) && art.validContractTypes.length === 1) {
+          return true;
+        }
+        return false;
+      })
+      .sort((a, b) => a.order - b.order);
+  };
+
 
   // Handlers
   const handleJobSelect = (title: string) => {
@@ -698,7 +828,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
           </div>
         </div>
 
-        {/* Right Column: Sélection intuitive des articles (5 cols) */}
+        {/* Right Column: Sélection intuitive des articles par Blocs de Types de Contrat (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
           <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden sticky top-20">
             {/* Header selection articles */}
@@ -706,116 +836,290 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
               <div className="flex items-center space-x-2.5">
                 <Layers className="w-5 h-5 text-emerald-400" />
                 <div>
-                  <h3 className="text-sm font-bold">Sélection des Articles & Clauses</h3>
+                  <h3 className="text-sm font-bold">Sélection des Articles par Type de Contrat</h3>
                   <p className="text-[11px] text-slate-400">
-                    Clauses adaptées au profil : <span className="text-emerald-300 font-semibold uppercase">{formData.contractType}</span> / <span className="text-blue-300 font-semibold capitalize">{formData.status}</span>
+                    6 Blocs thématiques • Profil actif : <span className="text-emerald-300 font-semibold uppercase">{CONTRACT_TYPE_LABELS[formData.contractType]}</span>
                   </p>
                 </div>
               </div>
 
-              <span className="text-xs font-bold px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                {selectedArticleIds.length} retenu{selectedArticleIds.length > 1 ? 's' : ''}
+              <span className="text-xs font-bold px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+                {selectedArticleIds.length} sélectionné{selectedArticleIds.length > 1 ? 's' : ''}
               </span>
             </div>
 
-            {/* Quick action bar */}
-            <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs">
+            {/* Quick overview of the 6 blocks */}
+            <div className="p-3 bg-slate-100/80 border-b border-slate-200">
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                Accès direct aux 6 blocs de contrats :
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                {CONTRACT_BLOCKS.map((block) => {
+                  const blockArticles = getBlockArticles(block);
+                  const selectedInBlockCount = blockArticles.filter((a) => selectedArticleIds.includes(a.id)).length;
+                  const isCurrentType = block.typeKey === formData.contractType;
+                  const isExpanded = expandedBlockIds.includes(block.id);
+
+                  return (
+                    <button
+                      key={block.id}
+                      type="button"
+                      onClick={() => toggleBlockExpanded(block.id)}
+                      className={`px-2 py-1.5 rounded-lg text-left text-[11px] font-semibold border transition flex items-center justify-between ${
+                        isCurrentType
+                          ? 'bg-blue-50 border-blue-300 text-blue-900 ring-1 ring-blue-400'
+                          : isExpanded
+                          ? 'bg-white border-slate-300 text-slate-900'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-white'
+                      }`}
+                    >
+                      <span className="truncate">{block.shortLabel}</span>
+                      <span
+                        className={`ml-1 text-[10px] px-1.5 py-0.2 rounded-full font-bold font-mono ${
+                          selectedInBlockCount > 0
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {selectedInBlockCount}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Global Quick Actions Bar */}
+            <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs">
               <button
                 type="button"
                 onClick={selectAllCompatibleArticles}
-                className="text-blue-600 hover:underline font-semibold"
+                className="text-blue-600 hover:underline font-semibold flex items-center gap-1"
               >
-                Cocher tous les compatibles ({compatibleArticles.length})
+                <CheckSquare className="w-3.5 h-3.5" />
+                <span>Cocher tous les compatibles ({compatibleArticles.length})</span>
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedArticleIds([])}
-                className="text-slate-500 hover:underline"
+                className="text-slate-500 hover:underline flex items-center gap-1"
               >
-                Tout désélectionner
+                <Square className="w-3.5 h-3.5" />
+                <span>Tout désélectionner</span>
               </button>
             </div>
 
-            {/* List of articles */}
-            <div className="p-4 max-h-[500px] overflow-y-auto space-y-2.5">
-              {/* Compatible articles */}
-              {compatibleArticles.map((art) => {
-                const isSelected = selectedArticleIds.includes(art.id);
+            {/* 6 Blocks Accordion Container */}
+            <div className="p-3 max-h-[520px] overflow-y-auto space-y-3 bg-slate-100/50">
+              {CONTRACT_BLOCKS.map((block) => {
+                const blockArticles = getBlockArticles(block);
+                const selectedInBlock = blockArticles.filter((a) => selectedArticleIds.includes(a.id));
+                const isExpanded = expandedBlockIds.includes(block.id);
+                const isCurrentType = block.typeKey === formData.contractType;
+                const isCommon = block.id === 'block-communs';
+
                 return (
                   <div
-                    key={art.id}
-                    onClick={() => toggleArticleSelection(art.id)}
-                    className={`p-3 rounded-lg border text-xs cursor-pointer transition flex items-start space-x-3 ${
-                      isSelected
-                        ? 'bg-blue-50/60 border-blue-300 shadow-2xs'
-                        : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600'
+                    key={block.id}
+                    className={`rounded-xl border transition shadow-2xs overflow-hidden ${
+                      isCurrentType
+                        ? 'border-blue-400 bg-white'
+                        : isExpanded
+                        ? 'border-slate-300 bg-white'
+                        : 'border-slate-200 bg-white/80'
                     }`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => {}} // Handled by parent div
-                      className="mt-0.5 rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded">
-                          {art.code}
+                    {/* Block Header */}
+                    <div
+                      onClick={() => toggleBlockExpanded(block.id)}
+                      className={`p-3.5 flex items-center justify-between cursor-pointer transition select-none ${
+                        isCurrentType
+                          ? 'bg-blue-50/70 hover:bg-blue-50'
+                          : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2.5">
+                        <div
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
+                            isCurrentType
+                              ? 'bg-blue-600 text-white'
+                              : isCommon
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {block.id === 'block-cdi' && 'CDI'}
+                          {block.id === 'block-cdd' && 'CDD'}
+                          {block.id === 'block-avenant-cdd' && 'Av.'}
+                          {block.id === 'block-avenant-cdi' && 'Pass.'}
+                          {block.id === 'block-tripartite' && 'Trip.'}
+                          {block.id === 'block-communs' && 'Com.'}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-xs font-extrabold text-slate-900">{block.title}</h4>
+                            {isCurrentType && (
+                              <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.2 rounded bg-blue-600 text-white shadow-2xs">
+                                Actif
+                              </span>
+                            )}
+                            {isCommon && (
+                              <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">
+                                Transversal
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 line-clamp-1">{block.description}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={`text-xs font-bold px-2 py-0.5 rounded-full font-mono ${
+                            selectedInBlock.length > 0
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : 'bg-slate-100 text-slate-500'
+                          }`}
+                        >
+                          {selectedInBlock.length} / {blockArticles.length}
                         </span>
-                        {art.isMandatory && (
-                          <span className="text-[9px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-1.5 rounded">
-                            Recommandé
-                          </span>
+                        {isExpanded ? (
+                          <ChevronUp className="w-4 h-4 text-slate-400" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 text-slate-400" />
                         )}
                       </div>
-                      <h4 className="font-bold text-slate-900 text-xs">{art.title}</h4>
-                      <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
-                        {art.content.replace(/\{\{[^}]+\}\}/g, '...')}
-                      </p>
                     </div>
+
+                    {/* Block Content when Expanded */}
+                    {isExpanded && (
+                      <div className="p-3 border-t border-slate-200 bg-slate-50/50 space-y-2">
+                        {/* Block actions bar */}
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-200/80 text-[11px]">
+                          <span className="text-slate-500">
+                            {blockArticles.length} clause{blockArticles.length > 1 ? 's' : ''} disponible{blockArticles.length > 1 ? 's' : ''} dans ce bloc
+                          </span>
+                          <div className="flex items-center space-x-3">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectAllInBlock(blockArticles);
+                              }}
+                              className="text-blue-600 hover:underline font-bold"
+                            >
+                              Tout cocher
+                            </button>
+                            <span className="text-slate-300">•</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeselectAllInBlock(blockArticles);
+                              }}
+                              className="text-slate-500 hover:underline"
+                            >
+                              Décocher
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Articles in this block */}
+                        {blockArticles.length === 0 ? (
+                          <p className="text-xs text-slate-400 italic py-2">
+                            Aucun article spécifique défini pour ce bloc.
+                          </p>
+                        ) : (
+                          <div className="space-y-2 pt-1">
+                            {blockArticles.map((art) => {
+                              const isSelected = selectedArticleIds.includes(art.id);
+                              const seqNum = getArticleSequenceNumber(art.id);
+                              const displayTitle = stripArticlePrefix(art.title);
+
+                              return (
+                                <div
+                                  key={art.id}
+                                  onClick={() => toggleArticleSelection(art.id)}
+                                  className={`p-3 rounded-lg border text-xs cursor-pointer transition flex items-start space-x-3 ${
+                                    isSelected
+                                      ? 'bg-white border-blue-400 shadow-2xs ring-1 ring-blue-200'
+                                      : 'bg-white/80 border-slate-200 hover:bg-white text-slate-600'
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => {}} // Controlled via parent onClick
+                                    className="mt-0.5 rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                                  />
+
+                                  <div className="flex-1">
+                                    <div className="flex flex-wrap items-center justify-between gap-1 mb-1">
+                                      <div className="flex items-center space-x-1.5">
+                                        <span className="font-mono text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded">
+                                          {art.code}
+                                        </span>
+
+                                        {/* Incremental sequential number tag */}
+                                        {isSelected && seqNum !== null ? (
+                                          <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-emerald-600 text-white font-mono shadow-2xs">
+                                            Article {seqNum}
+                                          </span>
+                                        ) : (
+                                          <span className="text-[10px] text-slate-400 italic">
+                                            Non retenu
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {art.isMandatory && (
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-1.5 rounded">
+                                          Recommandé
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <h5 className="font-bold text-slate-900 text-xs">{displayTitle}</h5>
+                                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
+                                      {art.content.replace(/\{\{[^}]+\}\}/g, '...')}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
-
-              {/* Other articles (incompatible or optional) accordion */}
-              {otherArticles.length > 0 && (
-                <div className="pt-2 border-t border-slate-200">
-                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                    Autres clauses facultatives ({otherArticles.length}) :
-                  </div>
-                  <div className="space-y-2">
-                    {otherArticles.map((art) => {
-                      const isSelected = selectedArticleIds.includes(art.id);
-                      return (
-                        <div
-                          key={art.id}
-                          onClick={() => toggleArticleSelection(art.id)}
-                          className={`p-2.5 rounded-lg border text-xs cursor-pointer transition flex items-start space-x-2.5 opacity-80 hover:opacity-100 ${
-                            isSelected
-                              ? 'bg-indigo-50/60 border-indigo-300 shadow-2xs'
-                              : 'bg-white border-slate-200 text-slate-500'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => {}}
-                            className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer"
-                          />
-                          <div className="flex-1">
-                            <span className="font-mono text-[10px] text-slate-400 mr-1">{art.code}</span>
-                            <span className="font-semibold text-slate-800">{art.title}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
 
+            {/* Incremental order preview of the finalized contract */}
+            {sortedSelectedArticles.length > 0 && (
+              <div className="p-3 bg-slate-50 border-t border-slate-200">
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                  <span>Numérotation incrémentale du contrat final ({sortedSelectedArticles.length}) :</span>
+                  <span className="text-emerald-700 font-bold font-mono">1 ➔ {sortedSelectedArticles.length}</span>
+                </div>
+                <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                  {sortedSelectedArticles.map((art, index) => (
+                    <span
+                      key={art.id}
+                      className="inline-flex items-center text-[10px] bg-white border border-slate-300 rounded px-1.5 py-0.5 text-slate-800"
+                      title={art.title}
+                    >
+                      <strong className="text-blue-700 font-mono mr-1">{index + 1}.</strong>
+                      <span className="max-w-[120px] truncate">{stripArticlePrefix(art.title)}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Bottom Actions Bar */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-2">
+            <div className="p-4 bg-white border-t border-slate-200 space-y-2">
               <button
                 id="btn-preview-and-generate"
                 onClick={handleCreateContract}
@@ -823,13 +1127,13 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-extrabold uppercase tracking-wider rounded-xl shadow-md transition flex items-center justify-center space-x-2"
               >
                 <Eye className="w-4 h-4" />
-                <span>Visualiser & Générer le PDF</span>
+                <span>Visualiser & Générer le Contrat (PDF & Word)</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsSaveTemplateModalOpen(true)}
-                className="w-full py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold rounded-lg transition flex items-center justify-center space-x-1.5"
+                className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold rounded-lg transition flex items-center justify-center space-x-1.5"
               >
                 <Bookmark className="w-3.5 h-3.5 text-blue-600" />
                 <span>Sauvegarder cette sélection comme modèle</span>
@@ -838,6 +1142,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
           </div>
         </div>
       </div>
+
 
       {/* Contract Preview Modal */}
       <ContractPreviewModal

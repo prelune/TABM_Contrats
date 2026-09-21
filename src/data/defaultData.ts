@@ -290,6 +290,33 @@ Les cotisations y afférentes sont réparties entre l'employeur et le salarié c
     order: 11,
   },
   {
+    id: 'art-avenant-cdd',
+    code: 'ART-AVENANT-CDD',
+    title: 'Article Spécifique - Objet de l’Avenant : Renouvellement du CDD',
+    category: 'Avenant',
+    content: `Le présent avenant a pour objet de renouveler le contrat de travail à durée déterminée initialement conclu le {{date_debut}}.
+En application de l'article L. 1243-13 du Code du travail, les parties conviennent expressément de prolonger le terme du contrat jusqu'au {{date_fin}} inclus.
+Le motif de recours initial ({{motif_recours}}) demeure inchangé. L'ensemble des autres dispositions du contrat initial continue de s'appliquer sans réserve.`,
+    validContractTypes: ['avenant_cdd'],
+    validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
+    isMandatory: true,
+    order: 2,
+  },
+  {
+    id: 'art-avenant-passage-cdi',
+    code: 'ART-AVENANT-CDI',
+    title: 'Article Spécifique - Transformation en Contrat à Durée Indéterminée (Passage CDI)',
+    category: 'Avenant',
+    content: `À compter du {{date_debut}}, la relation contractuelle liant les parties se poursuit sous la forme d'un contrat à durée indéterminée (CDI).
+Compte tenu des fonctions précédemment exercées au sein de l'entreprise, le salarié est dispensé de toute période d'essai.
+L'ancienneté acquise au titre des contrats antérieurs est intégralement conservée à compter de sa date d'embauche initiale.
+Le salarié exercera les fonctions de {{metier}} (Coefficient {{coefficient}}) pour une rémunération brute mensuelle de {{salaire_mensuel}} € calculée selon la valeur du point d'entreprise de {{valeur_point}} €.`,
+    validContractTypes: ['avenant_cdi'],
+    validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
+    isMandatory: true,
+    order: 2,
+  },
+  {
     id: 'art-convention-tripartite',
     code: 'ART-TRIPARTITE',
     title: 'Article Spécifique - Continuité des Droits et Ancienneté (Mutation Tripartite)',

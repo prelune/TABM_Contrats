@@ -9,38 +9,68 @@ export async function downloadContractAsPdf(elementId: string, filename: string)
   }
 
   try {
-    // Generate high-resolution canvas
+    // Generate high-resolution canvas with full scroll height captured
     const canvas = await html2canvas(element, {
       scale: 2,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
-      windowWidth: 800,
+      windowWidth: element.scrollWidth || 800,
+      windowHeight: element.scrollHeight,
+      x: 0,
+      y: 0,
+      scrollX: 0,
+      scrollY: 0,
     });
 
-    const imgData = canvas.toDataURL('image/png');
-    
     // A4 dimensions in mm: 210 x 297
     const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const pdfWidth = pdf.internal.pageSize.getWidth(); // 210
+    const pdfHeight = pdf.internal.pageSize.getHeight(); // 297
 
-    const imgWidth = pdfWidth;
-    const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+    // Ratio of A4 in pixels on this canvas
+    const a4Ratio = 297 / 210;
+    const pageHeightPx = Math.floor(canvas.width * a4Ratio);
 
-    let heightLeft = imgHeight;
-    let position = 0;
+    const totalPages = Math.max(1, Math.ceil(canvas.height / pageHeightPx));
 
-    // First page
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, '', 'FAST');
-    heightLeft -= pdfHeight;
+    for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+      const sourceY = pageIndex * pageHeightPx;
+      const remainingHeight = canvas.height - sourceY;
+      const currentSliceHeight = Math.min(pageHeightPx, remainingHeight);
 
-    // Additional pages if needed
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, '', 'FAST');
-      heightLeft -= pdfHeight;
+      // Create a clean canvas for this individual page
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = pageHeightPx;
+      const pageCtx = pageCanvas.getContext('2d');
+
+      if (pageCtx) {
+        // Fill page with clean white background
+        pageCtx.fillStyle = '#ffffff';
+        pageCtx.fillRect(0, 0, pageCanvas.width, pageHeightPx);
+
+        // Draw ONLY the slice belonging to this page
+        pageCtx.drawImage(
+          canvas,
+          0,
+          sourceY,
+          canvas.width,
+          currentSliceHeight,
+          0,
+          0,
+          canvas.width,
+          currentSliceHeight
+        );
+
+        const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.96);
+
+        if (pageIndex > 0) {
+          pdf.addPage();
+        }
+
+        pdf.addImage(pageImgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+      }
     }
 
     const cleanFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
@@ -73,11 +103,11 @@ export function printContractDocument(elementId: string): void {
         <title>Impression Contrat - TABM</title>
         <style>
           @page {
-            size: A4;
-            margin: 20mm 18mm 20mm 18mm;
+            size: A4 portrait;
+            margin: 15mm 15mm 15mm 15mm;
           }
           body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: Georgia, Cambria, "Times New Roman", Times, serif;
             color: #111827;
             background: #fff;
             line-height: 1.5;
@@ -97,8 +127,11 @@ export function printContractDocument(elementId: string): void {
             page-break-inside: avoid;
           }
           .signatures-block {
-            margin-top: 2rem;
+            margin-top: 2.5rem;
             page-break-inside: avoid;
+          }
+          table {
+            width: 100%;
           }
         </style>
       </head>
@@ -117,3 +150,4 @@ export function printContractDocument(elementId: string): void {
     printWindow.close();
   }, 350);
 }
+
