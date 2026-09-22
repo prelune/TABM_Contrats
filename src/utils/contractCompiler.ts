@@ -64,6 +64,9 @@ export function replaceContractTags(text: string, data: ContractEmployeeData): s
     '{{lieu_naissance}}': data.birthPlace || '______',
     '{{nationalite}}': data.nationality || 'Française',
 
+    '{{etablissement}}': data.establishmentName || data.companyName || 'TABM Transport',
+    '{{siret}}': data.establishmentSiret || '482 910 324 00028',
+    '{{code_ape}}': data.establishmentApe || '4939A',
     '{{societe}}': data.companyName || 'TABM Transport',
     '{{adresse_societe}}': companyFullAddress || '______',
     '{{representant_societe}}': data.companyRepresentative || 'Le représentant légal',
@@ -197,20 +200,25 @@ D'autre part,
 IL A ÉTÉ CONVENU ET ARRÊTÉ CE QUI SUIT :
   `.trim();
 
+  const legalFooter = `Raison Sociale : ${data.companyName} | ${data.companyAddress}, ${data.companyCity} | SIRET : ${data.establishmentSiret || '482 910 324 00028'} | APE : ${data.establishmentApe || '4939A'} | ${data.collectiveAgreement}`;
+
   const footerHtml = `
 Fait à ${data.companyCity || 'Lyon'}, le ${formatDateFrench(new Date().toISOString().slice(0, 10))},
 En deux exemplaires originaux, dont un remis à chacune des parties.
 
 (Faire précéder la signature de la mention manuscrite « Bon pour accord, lu et approuvé »)
 
-POUR LA SOCIÉTÉ TABM                                 LE SALARIÉ
+POUR LA SOCIÉTÉ ${data.companyName.toUpperCase()}                   LE SALARIÉ
 ${data.companyRepresentative}                         ${data.firstName} ${data.lastName.toUpperCase()}
 ${data.representativeRole}
+
+__________________________________________________________________________________________
+${legalFooter}
   `.trim();
 
   return {
     title,
-    headerHtml: `${data.companyName} — CONVENTION COLLECTIVE DES TRANSPORTS ROUTIERS`,
+    headerHtml: `${data.companyName} — ${data.collectiveAgreement}`,
     partiesHtml,
     compiledArticles,
     footerHtml,
@@ -343,6 +351,7 @@ export function exportContractToWordDocument(
     <body>
       <table class="header-table">
         <tr>
+          ${data.establishmentLogoUrl ? `<td width="100" style="vertical-align: top; padding-right: 15pt;"><img src="${data.establishmentLogoUrl}" width="90" style="max-height: 50pt; object-fit: contain;" alt="Logo" /></td>` : ''}
           <td align="left">
             <strong style="font-family: Arial, sans-serif; font-size: 13pt; color: #1e3a8a;">${data.companyName.toUpperCase()}</strong><br/>
             <span style="font-size: 9pt; color: #475569;">${data.companyAddress}, ${data.companyCity}</span><br/>
@@ -387,6 +396,11 @@ export function exportContractToWordDocument(
             </td>
           </tr>
         </table>
+      </div>
+
+      <div style="margin-top: 35pt; border-top: 1pt solid #cbd5e1; padding-top: 8pt; font-family: Arial, sans-serif; font-size: 8pt; color: #64748b; text-align: center;">
+        Raison Sociale : <strong>${data.companyName}</strong> — SIRET : ${data.establishmentSiret || '482 910 324 00028'} — APE : ${data.establishmentApe || '4939A'}<br/>
+        Siège : ${data.companyAddress}, ${data.companyCity} — ${data.collectiveAgreement}
       </div>
     </body>
     </html>

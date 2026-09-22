@@ -47,18 +47,28 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center justify-between h-16">
           {/* Brand */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-inner font-bold text-xl tracking-tight">
-              <Bus className="w-6 h-6" />
-            </div>
+            {db.settings.appLogoUrl ? (
+              <img
+                src={db.settings.appLogoUrl}
+                alt="Logo Application"
+                className="w-10 h-10 object-contain rounded-lg bg-white/10 p-1 border border-slate-700 shadow-inner"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-inner font-bold text-xl tracking-tight">
+                <Bus className="w-6 h-6" />
+              </div>
+            )}
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-lg tracking-tight font-display text-white">TABM-Contrats</span>
+                <span className="font-extrabold text-lg tracking-tight font-display text-white">
+                  {db.settings.appName || 'TABM-Contrats'}
+                </span>
                 <span className="bg-blue-500/20 text-blue-300 text-xs px-2 py-0.5 rounded font-medium border border-blue-500/30">
-                  RH Transport
+                  {db.settings.appBadge || 'RH Transport'}
                 </span>
               </div>
               <p className="text-xs text-slate-400 hidden sm:block">
-                Génération & Suivi des contrats de travail • 100% Hors-ligne
+                {db.settings.appSubtitle || 'Génération & Suivi des contrats de travail • 100% Hors-ligne'}
               </p>
             </div>
           </div>

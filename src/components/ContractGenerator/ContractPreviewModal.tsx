@@ -217,19 +217,36 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
             >
               {/* Header Letterhead */}
               <div className="border-b-2 border-slate-900 pb-4 mb-6 flex items-start justify-between">
-                <div>
-                  <div className="flex items-center space-x-2 text-slate-900">
-                    <Bus className="w-5 h-5 text-blue-700" />
-                    <span className="font-bold text-base sm:text-lg tracking-wider font-sans">
-                      {employeeData.companyName.toUpperCase()}
-                    </span>
+                <div className="flex items-start space-x-3">
+                  {employeeData.establishmentLogoUrl ? (
+                    <img 
+                      src={employeeData.establishmentLogoUrl} 
+                      alt="Logo Entreprise" 
+                      className="h-12 max-w-[140px] object-contain shrink-0 rounded"
+                    />
+                  ) : (
+                    <div className="p-2 rounded-lg bg-blue-50 border border-blue-200 shrink-0">
+                      <Bus className="w-6 h-6 text-blue-700" />
+                    </div>
+                  )}
+                  <div>
+                    <div className="flex items-center space-x-2 text-slate-900">
+                      <span className="font-bold text-base sm:text-lg tracking-wider font-sans">
+                        {employeeData.companyName.toUpperCase()}
+                      </span>
+                    </div>
+                    {employeeData.establishmentName && (
+                      <p className="text-[11px] font-semibold text-blue-900 font-sans">
+                        {employeeData.establishmentName}
+                      </p>
+                    )}
+                    <p className="text-[11px] text-slate-600 font-sans mt-0.5">
+                      {employeeData.companyAddress}, {employeeData.companyCity}
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-sans">
+                      {employeeData.collectiveAgreement}
+                    </p>
                   </div>
-                  <p className="text-[11px] text-slate-600 font-sans mt-1">
-                    {employeeData.companyAddress}, {employeeData.companyCity}
-                  </p>
-                  <p className="text-[10px] text-slate-500 font-sans">
-                    {employeeData.collectiveAgreement}
-                  </p>
                 </div>
                 <div className="text-right font-sans">
                   <span className="text-[10px] uppercase font-bold text-slate-500 block">Réf. Contrat</span>
@@ -308,10 +325,20 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
                 </div>
 
                 {/* Bottom legal notice */}
-                <div className="text-center text-[10px] text-slate-400 font-sans border-t border-slate-200 pt-3 flex justify-between">
-                  <span>Paraphe Employeur : _______</span>
-                  <span>Document contractuel établi sous IDCC 16 (Transports Routiers)</span>
-                  <span>Paraphe Salarié : _______</span>
+                <div className="border-t border-slate-300 pt-3 flex flex-col space-y-2 text-[10px] text-slate-500 font-sans">
+                  <div className="flex justify-between items-center text-slate-400">
+                    <span>Paraphe Employeur : _______</span>
+                    <span>{employeeData.collectiveAgreement}</span>
+                    <span>Paraphe Salarié : _______</span>
+                  </div>
+                  <div className="text-center pt-2 border-t border-slate-200 text-slate-600 font-medium">
+                    Raison Sociale : <strong className="text-slate-800">{employeeData.companyName}</strong> — SIRET : {employeeData.establishmentSiret || '482 910 324 00028'} — Code APE : {employeeData.establishmentApe || '4939A'}
+                    <br />
+                    Siège d'exploitation : {employeeData.companyAddress}, {employeeData.companyCity}
+                    {employeeData.establishmentFooterText && (
+                      <span className="block text-[9px] text-slate-400 mt-0.5">{employeeData.establishmentFooterText}</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

@@ -13,6 +13,31 @@ export type EmployeeStatus =
   | 'haute_maitrise' 
   | 'cadre';
 
+export interface Establishment {
+  id: string; // e.g. "etab-1", "etab-2", "etab-3"
+  code: string; // e.g. "ETAB-LYON-URBAIN", "ETAB-RHONE-INTER", "ETAB-TOURISME"
+  name: string; // Nom usuel, ex: "Établissement Principal Lyon Urbain"
+  shortName?: string; // Nom court, ex: "TABM Lyon Urbain"
+  companyName: string; // Raison sociale exacte
+  address: string;
+  postalCode: string;
+  city: string;
+  siret: string;
+  ape: string;
+  director: string; // Directeur / Représentant légal
+  directorRole: string; // Qualité (Directeur Général, Gérant...)
+  collectiveAgreement: string; // Convention collective applicable
+  logoUrl?: string; // Logo de l'établissement (URL ou data-URL base64)
+  footerText?: string; // Mention personnalisée de pied de page
+}
+
+export interface WorkflowStepConfig {
+  id: string; // e.g. "sentWithinDeadline", "employeeSigned", "step-uniforme", etc.
+  title: string; // Titre de la case à cocher
+  subtitle?: string; // Sous-titre explicatif
+  order: number;
+}
+
 export interface JobPosition {
   id: string;
   title: string;
@@ -28,11 +53,12 @@ export interface ContractArticle {
   code: string; // e.g. "ART-01"
   title: string;
   category: string; // "Général", "Poste & Missions", "Rémunération", "Temps de travail", "Spécificités Transport", etc.
-  content: string; // Contains {{tags}}
+  content: string; // Contient des balises {{tags}}
   validContractTypes: ContractType[];
   validStatuses: EmployeeStatus[];
-  isMandatory?: boolean; // Légalement obligatoire (Code du travail, convention collective)
-  isRecommended?: boolean; // Recommandé (bonnes pratiques d'exploitation transport)
+  validEstablishmentIds?: string[]; // IDs des établissements rattachés (ex: ['etab-1', 'etab-2', 'etab-3']). Si vide => tous
+  isMandatory?: boolean; // Légalement obligatoire globalement
+  mandatoryEstablishmentIds?: string[]; // IDs des établissements pour lesquels cet article est obligatoire
   order: number;
 }
 
@@ -61,8 +87,15 @@ export interface ContractEmployeeData {
   postalCode: string;
   city: string;
 
-  // Entreprise
-  companyName: string;
+  // Établissement & Entreprise
+  establishmentId?: string; // Rattaché à l'un des 3 établissements
+  establishmentName?: string;
+  establishmentSiret?: string;
+  establishmentApe?: string;
+  establishmentLogoUrl?: string;
+  establishmentFooterText?: string;
+
+  companyName: string; // Raison sociale
   companyAddress: string;
   companyCity: string;
   companyRepresentative: string;
@@ -82,9 +115,9 @@ export interface ContractEmployeeData {
   bonusDetails?: string;
 
   startDate: string;
-  endDate?: string; // If CDD
-  cddReason?: string; // If CDD
-  replacedEmployeeName?: string; // If replacement
+  endDate?: string; // Si CDD
+  cddReason?: string; // Si CDD
+  replacedEmployeeName?: string; // Si remplacement
   replacedEmployeeRole?: string;
   trialPeriod: string;
   trialPeriodRenewal: string;
@@ -95,16 +128,20 @@ export interface ContractEmployeeData {
 }
 
 export interface ContractWorkflowSteps {
-  sentWithinDeadline: boolean; // Envoyé dans les délais (ex: 48h)
+  // Liste dynamique des cases cochées : idÉtape -> booléen
+  checklist?: Record<string, boolean>;
+
+  // Métadonnées temporelles et champs usuels
+  sentWithinDeadline?: boolean; // Envoyé dans les délais (ex: 48h)
   sentDate?: string;
-  employeeSigned: boolean;
+  employeeSigned?: boolean;
   employeeSignedDate?: string;
-  directorSigned: boolean;
+  directorSigned?: boolean;
   directorSignedDate?: string;
-  dpaeCompleted: boolean;
-  medicalVisitCompleted: boolean;
-  licensesVerified: boolean;
-  storedInSharepoint: boolean;
+  dpaeCompleted?: boolean;
+  medicalVisitCompleted?: boolean;
+  licensesVerified?: boolean;
+  storedInSharepoint?: boolean;
   sharepointUrl?: string;
   notes?: string;
 }
@@ -115,14 +152,25 @@ export interface GeneratedContract {
   createdAt: string;
   employeeData: ContractEmployeeData;
   selectedArticleIds: string[];
-  customArticlesContent?: Record<string, string>; // If modified specifically for this contract
+  customArticlesContent?: Record<string, string>; // Si modifié spécifiquement
   renderedFullText: string;
   status: 'draft' | 'pending_signature' | 'partially_signed' | 'fully_signed' | 'archived';
   workflow: ContractWorkflowSteps;
 }
 
 export interface AppSettings {
-  pointValue: number; // Valeur du point entreprise (ex: 10.42 €)
+  // Personnalisation de l'application & Baselines (configurables depuis Excel)
+  appName: string; // ex: "TABM-Contrats"
+  appBadge: string; // ex: "RH Transport"
+  appSubtitle: string; // ex: "Génération & Suivi des contrats de travail • 100% Hors-ligne"
+  appLogoUrl?: string; // Logo de l'application (URL ou data-URI base64)
+  appFooterNotice: string; // Mention de bas de page globale
+
+  // Paramètres généraux
+  pointValue: number; // Valeur du point entreprise (ex: 10.92 €)
+  defaultEstablishmentId?: string;
+
+  // Données par défaut société
   companyName: string;
   companyAddress: string;
   companyCity: string;
@@ -131,12 +179,15 @@ export interface AppSettings {
   companyRepresentative: string;
   representativeRole: string;
   collectiveAgreement: string;
+  companyLogoUrl?: string;
 }
 
 export interface AppDatabase {
   version: string;
   exportedAt: string;
   settings: AppSettings;
+  establishments: Establishment[];
+  workflowSteps: WorkflowStepConfig[];
   jobs: JobPosition[];
   articles: ContractArticle[];
   templates: ContractTemplate[];

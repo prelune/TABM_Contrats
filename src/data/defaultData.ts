@@ -1,4 +1,4 @@
-import { AppSettings, JobPosition, ContractArticle, ContractTemplate, TagInfo, ContractType, EmployeeStatus } from '../types';
+import { AppSettings, JobPosition, ContractArticle, ContractTemplate, TagInfo, ContractType, EmployeeStatus, Establishment, WorkflowStepConfig } from '../types';
 
 export const CONTRACT_TYPE_LABELS: Record<ContractType, string> = {
   cdi: 'CDI - Contrat à Durée Indéterminée',
@@ -17,16 +17,125 @@ export const EMPLOYEE_STATUS_LABELS: Record<EmployeeStatus, string> = {
   cadre: 'Cadre',
 };
 
+export const DEFAULT_ESTABLISHMENTS: Establishment[] = [
+  {
+    id: 'etab-1',
+    code: 'ETAB-LYON-URBAIN',
+    name: 'Établissement Principal Lyon Urbain',
+    companyName: 'TABM Mobilités & Transport Urbain SAS',
+    address: '14 Boulevard des Transports, Z.I. Nord',
+    postalCode: '69009',
+    city: 'Lyon',
+    siret: '482 910 324 00028',
+    ape: '4939A (Transports urbains et périurbains)',
+    director: 'Laurent DUPONT',
+    directorRole: 'Directeur Général',
+    collectiveAgreement: 'Convention Collective Nationale des Réseaux de Transports Urbains de Voyageurs (IDCC 1424)',
+    logoUrl: '',
+    footerText: 'TABM Mobilités & Transport Urbain SAS - SIRET 482 910 324 00028 - RCS Lyon B 482 910 324 - APE 4939A',
+  },
+  {
+    id: 'etab-2',
+    code: 'ETAB-RHONE-INTER',
+    name: 'Établissement Régional Rhône & Interurbain',
+    companyName: 'TABM Lignes Interurbaines & Régionales SARL',
+    address: '28 Avenue de l’Industrie',
+    postalCode: '69800',
+    city: 'Saint-Priest',
+    siret: '519 823 411 00015',
+    ape: '4939B (Autres transports routiers réguliers de voyageurs)',
+    director: 'Béatrice VIAL',
+    directorRole: 'Directrice des Exploitations Régionales',
+    collectiveAgreement: 'Convention Collective Nationale des Transports Routiers et Activités Auxiliaires du Transport (IDCC 16)',
+    logoUrl: '',
+    footerText: 'TABM Lignes Interurbaines & Régionales SARL - SIRET 519 823 411 00015 - RCS Lyon B 519 823 411 - APE 4939B',
+  },
+  {
+    id: 'etab-3',
+    code: 'ETAB-TOURISME-ALPES',
+    name: 'Établissement Grand Tourisme & Occasionnel',
+    companyName: 'TABM Voyages & Grand Tourisme SAS',
+    address: '5 Rue des Messageries',
+    postalCode: '69007',
+    city: 'Lyon',
+    siret: '793 401 928 00034',
+    ape: '4939C (Téléphériques, remontées et transport occasionnel)',
+    director: 'Marc ANTOINE',
+    directorRole: 'Président Directeur Général',
+    collectiveAgreement: 'Convention Collective Nationale des Transports Routiers - Annexe Voyageurs Tourisme (IDCC 16)',
+    logoUrl: '',
+    footerText: 'TABM Voyages & Grand Tourisme SAS - SIRET 793 401 928 00034 - RCS Lyon B 793 401 928 - APE 4939C',
+  },
+];
+
+export const DEFAULT_WORKFLOW_STEPS: WorkflowStepConfig[] = [
+  {
+    id: 'sentWithinDeadline',
+    title: 'Envoi dans les délais légaux (48h)',
+    subtitle: 'Transmission du contrat au salarié',
+    order: 1,
+  },
+  {
+    id: 'employeeSigned',
+    title: 'Signature du collaborateur',
+    subtitle: 'Paraphe et mention manuscrite reçus',
+    order: 2,
+  },
+  {
+    id: 'directorSigned',
+    title: 'Signature de la direction',
+    subtitle: 'Contreseing employeur / représentant légal',
+    order: 3,
+  },
+  {
+    id: 'dpaeCompleted',
+    title: 'DPAE URSSAF déclarée',
+    subtitle: 'Accusé de réception URSSAF avant embauche',
+    order: 4,
+  },
+  {
+    id: 'medicalVisitCompleted',
+    title: "Visite médicale d'embauche",
+    subtitle: 'Attestation de suivi médical ou aptitude',
+    order: 5,
+  },
+  {
+    id: 'licensesVerified',
+    title: 'Titres & Permis contrôlés',
+    subtitle: 'Permis D, FIMO/FCO, carte chronotachygraphe',
+    order: 6,
+  },
+  {
+    id: 'uniformDelivered',
+    title: 'Remise tenue & Équipements EPI',
+    subtitle: 'Gilet haute visibilité, chaussures, badge d’accès',
+    order: 7,
+  },
+  {
+    id: 'storedInSharepoint',
+    title: 'Archivé sur SharePoint RH',
+    subtitle: 'Document classé dans le dossier collaborateur',
+    order: 8,
+  },
+];
+
 export const DEFAULT_SETTINGS: AppSettings = {
+  appName: 'TABM-Contrats',
+  appBadge: 'RH Transport',
+  appSubtitle: 'Génération & Suivi des contrats de travail • 100% Hors-ligne',
+  appLogoUrl: '',
+  appFooterNotice: 'TABM Transport & Mobilités - Logiciel RH 100% sécurisé et hors-ligne',
   pointValue: 10.92, // Valeur du point en euros
-  companyName: 'TABM Transport & Mobilités SAS',
+  defaultEstablishmentId: 'etab-1',
+  companyName: 'TABM Mobilités & Transport Urbain SAS',
   companyAddress: '14 Boulevard des Transports, Z.I. Nord',
-  companyCity: '69000 Lyon',
+  companyCity: '69009 Lyon',
   companySiret: '482 910 324 00028',
-  companyApe: '4939A (Transports routiers réguliers de voyageurs)',
+  companyApe: '4939A (Transports urbains et périurbains)',
   companyRepresentative: 'Laurent DUPONT',
   representativeRole: 'Directeur Général',
-  collectiveAgreement: 'Convention Collective Nationale des Transports Routiers et Activités Auxiliaires du Transport (IDCC 16)',
+  collectiveAgreement: 'Convention Collective Nationale des Réseaux de Transports Urbains de Voyageurs (IDCC 1424)',
+  companyLogoUrl: '',
 };
 
 export const DEFAULT_JOBS: JobPosition[] = [
@@ -133,8 +242,9 @@ export const DEFAULT_ARTICLES: ContractArticle[] = [
 Le présent engagement est conclu sous réserve des résultats concluants de la visite d'information et de prévention (visite médicale d'embauche) et de la présentation de l'ensemble des justificatifs et titres professionnels requis.`,
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
+    validEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     isMandatory: true,
-    isRecommended: false,
+    mandatoryEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     order: 1,
   },
   {
@@ -149,8 +259,9 @@ Il est expressément motivé par le recours suivant : {{motif_recours}}.
 Conformément à l'article L. 1243-13 du Code du travail, le présent contrat pourra faire l'objet de renouvellements dans le respect des dispositions légales et conventionnelles applicables.`,
     validContractTypes: ['cdd', 'avenant_cdd'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
+    validEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     isMandatory: true,
-    isRecommended: false,
+    mandatoryEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     order: 2,
   },
   {
@@ -163,8 +274,9 @@ Il est subordonné à une période d’essai de {{periode_essai}} de travail eff
 {{modalites_renouvellement}}`,
     validContractTypes: ['cdi'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
+    validEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     isMandatory: true,
-    isRecommended: false,
+    mandatoryEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     order: 2,
   },
   {
@@ -177,8 +289,9 @@ Il est subordonné à une période d’essai de {{periode_essai}} de travail eff
 Le salarié s'engage à exécuter ses tâches avec toute la conscience professionnelle requise, dans le respect des consignes hiérarchiques, des règles d'exploitation ainsi que des procédures de qualité et d'accueil de la clientèle de l'entreprise.`,
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
+    validEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     isMandatory: true,
-    isRecommended: false,
+    mandatoryEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     order: 3,
   },
   {
@@ -191,8 +304,9 @@ Le salarié s'engage à exécuter ses tâches avec toute la conscience professio
 Compte tenu de la nature des activités de transport de l'entreprise, le salarié reconnaît et accepte expressément que son lieu d'exercice pourra varier en fonction des lignes, des services confiés ou des réorganisations de desserte au sein de la zone géographique suivante : {{zone_mobilite}}.`,
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
+    validEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     isMandatory: true,
-    isRecommended: false,
+    mandatoryEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     order: 4,
   },
   {
@@ -205,8 +319,9 @@ Compte tenu de la nature des activités de transport de l'entreprise, le salari�
 Les horaires de travail ainsi que les tableaux de roulement ou feuilles de service seront communiqués au salarié conformément aux délais de prévenance conventionnels. Le salarié pourra être amené à effectuer des heures supplémentaires ou complémentaires selon les nécessités de service et les dispositions légales en vigueur dans le secteur des transports routiers.`,
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
+    validEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     isMandatory: true,
-    isRecommended: false,
+    mandatoryEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     order: 5,
   },
   {
@@ -224,8 +339,9 @@ Les horaires de travail ainsi que les tableaux de roulement ou feuilles de servi
 À cette rémunération s'ajouteront, le cas échéant, les primes et indemnités conventionnelles (indemnité de repas, prime de dimanche, prime de panier, prime de non-accident) conformément aux barèmes applicables au sein de la société {{societe}}.`,
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
+    validEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     isMandatory: true,
-    isRecommended: false,
+    mandatoryEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     order: 6,
   },
   {
@@ -240,8 +356,9 @@ Le salarié s'engage à informer immédiatement la direction de tout retrait, su
 Le salarié s'engage également à utiliser sa carte de conducteur numérique conformément à la réglementation sociale européenne (RSE) et à en assurer le téléchargement régulier.`,
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['conducteur'],
+    validEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     isMandatory: true,
-    isRecommended: false,
+    mandatoryEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     order: 7,
   },
   {
@@ -255,51 +372,94 @@ Avant chaque départ, le salarié doit réaliser les contrôles de sécurité pr
 Il est strictement interdit de conduire sous l'emprise de l'alcool, de stupéfiants ou de substances altérant la vigilance.`,
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['conducteur', 'ouvrier'],
+    validEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     isMandatory: false,
-    isRecommended: true,
     order: 8,
   },
   {
+    id: 'art-urbain-billetterie-saeiv',
+    code: 'ART-09-URBAIN',
+    title: 'Article 9 - Exploitation Réseau Urbain, SAEIV et Recette Billetterie',
+    category: 'Spécifique Établissement Urbain',
+    content: `Spécifique à l'exploitation des lignes de l'Établissement Principal Lyon Urbain (IDCC 1424) :
+Le conducteur receveur est garant de l'exactitude de la caisse de bord, de la vente des titres de transport au tarif en vigueur et de l'utilisation rigoureuse du pupitre SAEIV embarqué. La recette perçue doit être versée quotidiennement selon les procédures de sécurisation des fonds de l'établissement.`,
+    validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi'],
+    validStatuses: ['conducteur', 'employé'],
+    validEstablishmentIds: ['etab-1'], // Valide uniquement pour l'Établissement Urbain
+    isMandatory: true,
+    mandatoryEstablishmentIds: ['etab-1'], // Obligatoire pour etab-1 !
+    order: 9,
+  },
+  {
+    id: 'art-interurbain-tachygraphe',
+    code: 'ART-10-INTERURBAIN',
+    title: 'Article 10 - Respect RSE, Temps de Repos et Chronotachygraphe Interurbain',
+    category: 'Spécifique Lignes Régionales & Tourisme',
+    content: `En application du Règlement (CE) n° 561/2006 régissant les lignes interurbaines et régionales, le conducteur s'engage à respecter scrupuleusement les temps de conduite continue (limités à 4h30), les pauses réglementaires de 45 minutes et les temps de repos journaliers et hebdomadaires.
+La carte de conducteur numérique doit être insérée dès la prise de service dans le tachygraphe et retirée uniquement à la fin du service.`,
+    validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi'],
+    validStatuses: ['conducteur'],
+    validEstablishmentIds: ['etab-2', 'etab-3'], // Valide pour Régional et Tourisme
+    isMandatory: true,
+    mandatoryEstablishmentIds: ['etab-2', 'etab-3'], // Obligatoire pour etab-2 et etab-3 !
+    order: 10,
+  },
+  {
+    id: 'art-tourisme-frais-deplacement',
+    code: 'ART-11-TOURISME',
+    title: 'Article 11 - Grand Tourisme, Découchés et Frais de Déplacement Exceptionnels',
+    category: 'Spécifique Grand Tourisme',
+    content: `Spécifique aux missions de l'Établissement Grand Tourisme & Occasionnel :
+Dans le cadre de voyages nationaux ou internationaux impliquant des séjours extérieurs, les frais d'hébergement, repas et découchés sont pris en charge ou indemnisés selon le barème conventionnel tourisme en vigueur. Le conducteur veille à la prise en charge des passagers et des soutes à bagages avec le plus grand soin.`,
+    validContractTypes: ['cdi', 'cdd'],
+    validStatuses: ['conducteur', 'maitrise'],
+    validEstablishmentIds: ['etab-3'], // Valide uniquement pour Grand Tourisme
+    isMandatory: true,
+    mandatoryEstablishmentIds: ['etab-3'], // Obligatoire uniquement pour etab-3 !
+    order: 11,
+  },
+  {
     id: 'art-secret-loyaute',
-    code: 'ART-09',
-    title: 'Article 9 - Obligation de Loyauté, Discrétion et Confidentialité',
+    code: 'ART-12-CONFIDENTIALITE',
+    title: 'Article 12 - Obligation de Loyauté, Discrétion et Confidentialité',
     category: 'Général',
     content: `Le salarié s'engage à observer la plus stricte réserve et discrétion sur l'ensemble des informations, procédés, fichiers clients, plannings, circuits et données tarifaires dont il pourrait avoir connaissance dans l'exercice de ses fonctions.
 
 Cette obligation de confidentialité survivra à la rupture du présent contrat de travail, quelle qu'en soit la cause.`,
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
+    validEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     isMandatory: false,
-    isRecommended: true,
-    order: 9,
+    order: 12,
   },
   {
     id: 'art-non-concurrence',
-    code: 'ART-10-CADRE',
-    title: 'Article 10 - Clause de Non-Concurrence',
+    code: 'ART-13-CADRE',
+    title: 'Article 13 - Clause de Non-Concurrence',
     category: 'Spécifique Encadrement',
     content: `Compte tenu des responsabilités managériales et des contacts stratégiques confiés au salarié avec les autorités organisatrices de transport et clients industriels, le salarié s'interdit, en cas de cessation du contrat, d'entrer au service d'une entreprise concurrente ou de s'intéresser directement ou indirectement à une activité similaire.
 
 Cette interdiction est limitée à un rayon de 50 kilomètres autour du siège de la société et pour une durée de 12 mois à compter du départ effectif de l'entreprise. En contrepartie, la société versera mensuellement au salarié une indemnité spéciale correspondant à 30 % de la moyenne de sa rémunération brute des trois derniers mois. La société se réserve la faculté de renoncer unilatéralement à cette clause dans les conditions légales.`,
     validContractTypes: ['cdi', 'avenant_cdi'],
     validStatuses: ['maitrise', 'haute_maitrise', 'cadre'],
+    validEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     isMandatory: false,
-    isRecommended: false,
-    order: 10,
+    order: 13,
   },
   {
     id: 'art-prevoyance-sante',
-    code: 'ART-11',
-    title: 'Article 11 - Prévoyance et Mutuelle Frais de Santé',
+    code: 'ART-14-PREVOYANCE',
+    title: 'Article 14 - Prévoyance et Mutuelle Frais de Santé',
     category: 'Général',
     content: `Le salarié bénéficie du régime obligatoire de prévoyance et de la couverture complémentaire frais de santé (mutuelle d'entreprise) souscrits par la société {{societe}} au profit de l'ensemble de son personnel, sous réserve des cas légaux de dispense.
 
 Les cotisations y afférentes sont réparties entre l'employeur et le salarié conformément à l'accord d'entreprise et à la {{convention_collective}}.`,
     validContractTypes: ['cdi', 'cdd', 'avenant_cdd', 'avenant_cdi', 'convention_tripartite'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
+    validEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     isMandatory: true,
-    isRecommended: false,
-    order: 11,
+    mandatoryEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
+    order: 14,
   },
   {
     id: 'art-avenant-cdd',
@@ -311,8 +471,9 @@ En application de l'article L. 1243-13 du Code du travail, les parties convienne
 Le motif de recours initial ({{motif_recours}}) demeure inchangé. L'ensemble des autres dispositions du contrat initial continue de s'appliquer sans réserve.`,
     validContractTypes: ['avenant_cdd'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
+    validEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     isMandatory: true,
-    isRecommended: false,
+    mandatoryEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     order: 2,
   },
   {
@@ -326,8 +487,9 @@ L'ancienneté acquise au titre des contrats antérieurs est intégralement conse
 Le salarié exercera les fonctions de {{metier}} (Coefficient {{coefficient}}) pour une rémunération brute mensuelle de {{salaire_mensuel}} € calculée selon la valeur du point d'entreprise de {{valeur_point}} €.`,
     validContractTypes: ['avenant_cdi'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
+    validEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     isMandatory: true,
-    isRecommended: false,
+    mandatoryEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     order: 2,
   },
   {
@@ -340,9 +502,10 @@ Le salarié exercera les fonctions de {{metier}} (Coefficient {{coefficient}}) p
 Les congés payés acquis et non soldés font l'objet d'un transfert financier entre les deux structures conformément au protocole d'accord joint en annexe.`,
     validContractTypes: ['convention_tripartite'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
+    validEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     isMandatory: true,
-    isRecommended: false,
-    order: 12,
+    mandatoryEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
+    order: 15,
   },
 ];
 
@@ -627,5 +790,26 @@ export const AVAILABLE_TAGS: TagInfo[] = [
     category: 'Entreprise',
     description: 'Convention collective applicable',
     example: 'Convention Collective Nationale des Transports Routiers (IDCC 16)',
+  },
+  {
+    tag: '{{etablissement}}',
+    label: 'Nom de l’établissement',
+    category: 'Entreprise',
+    description: 'Établissement d’attachement parmi les 3 sites',
+    example: 'Établissement Principal Lyon Urbain',
+  },
+  {
+    tag: '{{siret}}',
+    label: 'Numéro SIRET',
+    category: 'Entreprise',
+    description: 'SIRET officiel de l’établissement',
+    example: '482 910 324 00028',
+  },
+  {
+    tag: '{{code_ape}}',
+    label: 'Code APE / NAF',
+    category: 'Entreprise',
+    description: 'Code APE de l’activité transport',
+    example: '4939A (Transports urbains et périurbains)',
   },
 ];

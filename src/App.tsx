@@ -12,7 +12,8 @@ import {
   GeneratedContract, 
   JobPosition, 
   AppSettings,
-  ContractEmployeeData
+  ContractEmployeeData,
+  WorkflowStepConfig
 } from './types';
 import { 
   createEmptyDatabase, 
@@ -251,6 +252,14 @@ export default function App() {
     }
   };
 
+  const handleUpdateWorkflowStepConfig = (steps: WorkflowStepConfig[]) => {
+    setDb((prev) => ({
+      ...prev,
+      workflowSteps: steps,
+    }));
+    showToast('Étapes du processus de signature mises à jour !', 'success');
+  };
+
   const isMemoryEmpty = db.articles.length === 0 && db.jobs.length === 0 && db.contracts.length === 0;
 
   return (
@@ -402,6 +411,8 @@ export default function App() {
               <ContractsHistoryView
                 contracts={db.contracts}
                 articles={db.articles}
+                workflowSteps={db.workflowSteps}
+                onUpdateWorkflowStepConfig={handleUpdateWorkflowStepConfig}
                 onUpdateContractWorkflow={handleUpdateContractWorkflow}
                 onUpdateContractStatus={handleUpdateContractStatus}
                 onDeleteContract={handleDeleteContract}
@@ -412,6 +423,7 @@ export default function App() {
             {activeTab === 'articles' && (
               <ArticlesList
                 articles={db.articles}
+                establishments={db.establishments}
                 onAddArticle={handleAddArticle}
                 onUpdateArticle={handleUpdateArticle}
                 onDeleteArticle={handleDeleteArticle}
@@ -443,15 +455,17 @@ export default function App() {
       <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center space-x-2">
-            <span className="font-bold text-slate-800 font-display">TABM-Contrats</span>
+            <span className="font-bold text-slate-800 font-display">
+              {db.settings.appName || 'TABM-Contrats'}
+            </span>
             <span>—</span>
-            <span>Système RH d'Édition et de Suivi des Contrats de Travail</span>
+            <span>{db.settings.appFooterNotice || "Système RH d'Édition et de Suivi des Contrats de Travail"}</span>
           </div>
 
           <div className="flex items-center space-x-4 text-[11px] text-slate-400">
             <span>Stockage 100% Mémoire Locale & Sauvegarde Excel</span>
             <span>•</span>
-            <span>Convention Collective Nationale des Transports Routiers</span>
+            <span>{db.settings.collectiveAgreement || 'Convention Collective Nationale des Transports Routiers'}</span>
           </div>
         </div>
       </footer>

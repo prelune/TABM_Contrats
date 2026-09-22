@@ -10,13 +10,15 @@ import {
   Tag, 
   HelpCircle,
   FileText,
-  Filter
+  Filter,
+  Building2
 } from 'lucide-react';
-import { ContractArticle, ContractType, EmployeeStatus } from '../../types';
+import { ContractArticle, ContractType, EmployeeStatus, Establishment } from '../../types';
 import { CONTRACT_TYPE_LABELS, EMPLOYEE_STATUS_LABELS } from '../../data/defaultData';
 
 interface ArticlesListProps {
   articles: ContractArticle[];
+  establishments?: Establishment[];
   onAddArticle: (article: Omit<ContractArticle, 'id'>) => void;
   onUpdateArticle: (id: string, updated: Partial<ContractArticle>) => void;
   onDeleteArticle: (id: string) => void;
@@ -42,6 +44,7 @@ const ALL_STATUSES: EmployeeStatus[] = [
 
 export const ArticlesList: React.FC<ArticlesListProps> = ({
   articles,
+  establishments = [],
   onAddArticle,
   onUpdateArticle,
   onDeleteArticle,
@@ -50,6 +53,7 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterContractType, setFilterContractType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterEstablishment, setFilterEstablishment] = useState<string>('all');
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,8 +65,9 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
     content: string;
     validContractTypes: ContractType[];
     validStatuses: EmployeeStatus[];
+    validEstablishmentIds: string[];
+    mandatoryEstablishmentIds: string[];
     isMandatory: boolean;
-    isRecommended: boolean;
     order: number;
   }>({
     code: '',
@@ -71,8 +76,9 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
     content: '',
     validContractTypes: ['cdi', 'cdd'],
     validStatuses: ['conducteur', 'employé', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
+    validEstablishmentIds: [],
+    mandatoryEstablishmentIds: [],
     isMandatory: false,
-    isRecommended: false,
     order: 1,
   });
 
@@ -85,8 +91,9 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
       content: '',
       validContractTypes: ['cdi', 'cdd'],
       validStatuses: ['conducteur', 'employé', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
+      validEstablishmentIds: establishments.map(e => e.id),
+      mandatoryEstablishmentIds: [],
       isMandatory: false,
-      isRecommended: false,
       order: articles.length + 1,
     });
     setIsModalOpen(true);
@@ -101,8 +108,9 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
       content: article.content,
       validContractTypes: [...article.validContractTypes],
       validStatuses: [...article.validStatuses],
+      validEstablishmentIds: article.validEstablishmentIds ? [...article.validEstablishmentIds] : establishments.map(e => e.id),
+      mandatoryEstablishmentIds: article.mandatoryEstablishmentIds ? [...article.mandatoryEstablishmentIds] : [],
       isMandatory: !!article.isMandatory,
-      isRecommended: !!article.isRecommended,
       order: article.order,
     });
     setIsModalOpen(true);
@@ -142,6 +150,44 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
     });
   };
 
+  const toggleEstablishment = (estId: string) => {
+    setFormData((prev) => {
+      const exists = prev.validEstablishmentIds.includes(estId);
+      if (exists) {
+        return {
+          ...prev,
+          validEstablishmentIds: prev.validEstablishmentIds.filter((id) => id !== estId),
+          mandatoryEstablishmentIds: prev.mandatoryEstablishmentIds.filter((id) => id !== estId),
+        };
+      } else {
+        return {
+          ...prev,
+          validEstablishmentIds: [...prev.validEstablishmentIds, estId],
+        };
+      }
+    });
+  };
+
+  const toggleMandatoryEstablishment = (estId: string) => {
+    setFormData((prev) => {
+      const exists = prev.mandatoryEstablishmentIds.includes(estId);
+      if (exists) {
+        return {
+          ...prev,
+          mandatoryEstablishmentIds: prev.mandatoryEstablishmentIds.filter((id) => id !== estId),
+        };
+      } else {
+        return {
+          ...prev,
+          mandatoryEstablishmentIds: [...prev.mandatoryEstablishmentIds, estId],
+          validEstablishmentIds: prev.validEstablishmentIds.includes(estId)
+            ? prev.validEstablishmentIds
+            : [...prev.validEstablishmentIds, estId],
+        };
+      }
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim() || !formData.content.trim()) return;
@@ -154,8 +200,9 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
         content: formData.content,
         validContractTypes: formData.validContractTypes,
         validStatuses: formData.validStatuses,
+        validEstablishmentIds: formData.validEstablishmentIds,
+        mandatoryEstablishmentIds: formData.mandatoryEstablishmentIds,
         isMandatory: formData.isMandatory,
-        isRecommended: formData.isRecommended,
         order: Number(formData.order),
       });
     } else {
@@ -166,8 +213,9 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
         content: formData.content,
         validContractTypes: formData.validContractTypes,
         validStatuses: formData.validStatuses,
+        validEstablishmentIds: formData.validEstablishmentIds,
+        mandatoryEstablishmentIds: formData.mandatoryEstablishmentIds,
         isMandatory: formData.isMandatory,
-        isRecommended: formData.isRecommended,
         order: Number(formData.order),
       });
     }
@@ -187,7 +235,13 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
     const matchesStatus =
       filterStatus === 'all' || art.validStatuses.includes(filterStatus as EmployeeStatus);
 
-    return matchesSearch && matchesType && matchesStatus;
+    const matchesEstablishment =
+      filterEstablishment === 'all' ||
+      !art.validEstablishmentIds ||
+      art.validEstablishmentIds.length === 0 ||
+      art.validEstablishmentIds.includes(filterEstablishment);
+
+    return matchesSearch && matchesType && matchesStatus && matchesEstablishment;
   });
 
   return (
@@ -268,6 +322,25 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
               ))}
             </select>
           </div>
+
+          {establishments.length > 0 && (
+            <div className="flex items-center gap-1.5 text-xs text-slate-600">
+              <Building2 className="w-3.5 h-3.5 text-slate-400" />
+              <span>Établissement :</span>
+              <select
+                value={filterEstablishment}
+                onChange={(e) => setFilterEstablishment(e.target.value)}
+                className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 focus:outline-hidden"
+              >
+                <option value="all">Tous les établissements</option>
+                {establishments.map((est) => (
+                  <option key={est.id} value={est.id}>
+                    {est.shortName || est.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
@@ -288,16 +361,15 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
                   <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
                     {art.category}
                   </span>
-                  {art.isMandatory && (
+                  {art.isMandatory ? (
                     <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200">
-                      Obligatoire
+                      Obligatoire (Tous)
                     </span>
-                  )}
-                  {art.isRecommended && (
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
-                      Recommandé
+                  ) : art.mandatoryEstablishmentIds && art.mandatoryEstablishmentIds.length > 0 ? (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">
+                      Obligatoire ({art.mandatoryEstablishmentIds.map(id => establishments.find(e => e.id === id)?.shortName || id).join(', ')})
                     </span>
-                  )}
+                  ) : null}
                   <span className="text-xs text-slate-400">Ordre #{art.order}</span>
                 </div>
 
@@ -361,6 +433,27 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
                   ))}
                 </div>
               </div>
+
+              {establishments.length > 0 && art.validEstablishmentIds && art.validEstablishmentIds.length > 0 && (
+                <div>
+                  <span className="text-slate-400 font-medium block text-[10px] uppercase mb-1">
+                    Établissements rattachés :
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {art.validEstablishmentIds.map((estId) => {
+                      const est = establishments.find((e) => e.id === estId);
+                      return (
+                        <span
+                          key={estId}
+                          className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200"
+                        >
+                          {est?.shortName || est?.name || estId}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -471,9 +564,9 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
                   </div>
                 </div>
 
-                {/* Legal / Operational Status */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                  <label className="flex items-center space-x-3 p-2 bg-white rounded-lg border border-slate-200 cursor-pointer hover:border-rose-300 transition">
+                {/* Legal Mandatory Status */}
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                  <label className="flex items-start space-x-3 p-3 bg-white rounded-lg border border-slate-200 cursor-pointer hover:border-rose-300 transition">
                     <input
                       type="checkbox"
                       checked={formData.isMandatory}
@@ -482,43 +575,116 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
                         setFormData({
                           ...formData,
                           isMandatory: checked,
-                          isRecommended: checked ? false : formData.isRecommended,
+                          mandatoryEstablishmentIds: checked ? [] : formData.mandatoryEstablishmentIds,
                         });
                       }}
-                      className="rounded border-slate-300 text-rose-600 focus:ring-rose-500 w-4 h-4"
+                      className="mt-0.5 rounded border-slate-300 text-rose-600 focus:ring-rose-500 w-4 h-4 shrink-0"
                     />
                     <div>
                       <span className="text-xs font-bold text-rose-800 flex items-center">
                         <span className="w-2 h-2 rounded-full bg-rose-500 mr-1.5"></span>
-                        Clause Obligatoire
+                        Article Obligatoire Globalement (Tous les établissements)
                       </span>
-                      <p className="text-[11px] text-slate-500">Exigée par la loi / convention</p>
+                      <p className="text-[11px] text-slate-500">
+                        Cette clause sera automatiquement cochée et obligatoire pour tous les contrats éligibles.
+                      </p>
                     </div>
                   </label>
 
-                  <label className="flex items-center space-x-3 p-2 bg-white rounded-lg border border-slate-200 cursor-pointer hover:border-amber-300 transition">
-                    <input
-                      type="checkbox"
-                      checked={formData.isRecommended}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setFormData({
-                          ...formData,
-                          isRecommended: checked,
-                          isMandatory: checked ? false : formData.isMandatory,
-                        });
-                      }}
-                      className="rounded border-slate-300 text-amber-600 focus:ring-amber-500 w-4 h-4"
-                    />
-                    <div>
-                      <span className="text-xs font-bold text-amber-800 flex items-center">
-                        <span className="w-2 h-2 rounded-full bg-amber-500 mr-1.5"></span>
-                        Clause Recommandée
-                      </span>
-                      <p className="text-[11px] text-slate-500">Sécurité transport / loyauté</p>
+                  {/* If not globally mandatory, allow establishment-specific mandatory rules */}
+                  {!formData.isMandatory && establishments.length > 0 && (
+                    <div className="pt-2 border-t border-slate-200">
+                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Ou Obligatoire uniquement pour certains établissements :
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {establishments.map((est) => {
+                          const isMand = formData.mandatoryEstablishmentIds.includes(est.id);
+                          return (
+                            <button
+                              key={est.id}
+                              type="button"
+                              onClick={() => toggleMandatoryEstablishment(est.id)}
+                              className={`flex items-start text-left p-2 rounded-lg border text-xs transition ${
+                                isMand
+                                  ? 'bg-rose-50 border-rose-300 text-rose-900 font-semibold'
+                                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                              }`}
+                            >
+                              {isMand ? (
+                                <CheckSquare className="w-3.5 h-3.5 text-rose-600 mr-1.5 shrink-0 mt-0.5" />
+                              ) : (
+                                <Square className="w-3.5 h-3.5 text-slate-400 mr-1.5 shrink-0 mt-0.5" />
+                              )}
+                              <span className="text-[11px] leading-tight">
+                                Obligatoire pour <strong>{est.shortName || est.name}</strong>
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </label>
+                  )}
                 </div>
+
+                {/* Establishments valid linking */}
+                {establishments.length > 0 && (
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                        Rattacher aux établissements (Disponibilité)
+                      </label>
+                      <div className="space-x-2 text-[11px]">
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, validEstablishmentIds: establishments.map(e => e.id) })}
+                          className="text-blue-600 hover:underline font-semibold"
+                        >
+                          Tous
+                        </button>
+                        <span>•</span>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, validEstablishmentIds: [] })}
+                          className="text-slate-500 hover:underline"
+                        >
+                          Aucun
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mb-3">
+                      L'article sera proposé uniquement lors de l'édition d'un contrat pour les établissements cochés :
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {establishments.map((est) => {
+                        const isChecked = formData.validEstablishmentIds.includes(est.id);
+                        return (
+                          <button
+                            key={est.id}
+                            type="button"
+                            onClick={() => toggleEstablishment(est.id)}
+                            className={`flex items-start text-left p-2.5 rounded-lg border text-xs transition ${
+                              isChecked
+                                ? 'bg-slate-100 border-slate-400 text-slate-900 font-semibold'
+                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            {isChecked ? (
+                              <CheckSquare className="w-4 h-4 text-slate-800 mr-2 shrink-0 mt-0.5" />
+                            ) : (
+                              <Square className="w-4 h-4 text-slate-400 mr-2 shrink-0 mt-0.5" />
+                            )}
+                            <div>
+                              <div className="text-xs font-bold">{est.shortName || est.name}</div>
+                              <div className="text-[10px] text-slate-500">{est.city}</div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* Requirements: Valid Contract Types (Multi-choice) */}
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">

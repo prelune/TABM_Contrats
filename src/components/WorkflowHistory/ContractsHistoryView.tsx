@@ -18,16 +18,21 @@ import {
   ShieldCheck,
   Send,
   Building2,
-  FileCheck
+  FileCheck,
+  Settings,
+  Plus,
+  ArrowUpDown
 } from 'lucide-react';
-import { GeneratedContract, ContractWorkflowSteps, ContractArticle } from '../../types';
-import { CONTRACT_TYPE_LABELS, EMPLOYEE_STATUS_LABELS } from '../../data/defaultData';
+import { GeneratedContract, ContractWorkflowSteps, ContractArticle, WorkflowStepConfig } from '../../types';
+import { CONTRACT_TYPE_LABELS, EMPLOYEE_STATUS_LABELS, DEFAULT_WORKFLOW_STEPS } from '../../data/defaultData';
 import { formatEuro, formatDateFrench } from '../../utils/contractCompiler';
 import { ContractPreviewModal } from '../ContractGenerator/ContractPreviewModal';
 
 interface ContractsHistoryViewProps {
   contracts: GeneratedContract[];
   articles: ContractArticle[];
+  workflowSteps?: WorkflowStepConfig[];
+  onUpdateWorkflowStepConfig?: (steps: WorkflowStepConfig[]) => void;
   onUpdateContractWorkflow: (contractId: string, updatedWorkflow: Partial<ContractWorkflowSteps>) => void;
   onUpdateContractStatus: (contractId: string, status: GeneratedContract['status']) => void;
   onDeleteContract: (contractId: string) => void;
@@ -37,6 +42,8 @@ interface ContractsHistoryViewProps {
 export const ContractsHistoryView: React.FC<ContractsHistoryViewProps> = ({
   contracts,
   articles,
+  workflowSteps,
+  onUpdateWorkflowStepConfig,
   onUpdateContractWorkflow,
   onUpdateContractStatus,
   onDeleteContract,
@@ -45,36 +52,78 @@ export const ContractsHistoryView: React.FC<ContractsHistoryViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [activePreviewContract, setActivePreviewContract] = useState<GeneratedContract | null>(null);
+  const [isStepsConfigOpen, setIsStepsConfigOpen] = useState(false);
 
-  // Toggle step helper
-  const handleToggleStep = (
-    contract: GeneratedContract,
-    field: keyof ContractWorkflowSteps
-  ) => {
-    const currentVal = !!contract.workflow[field];
+  // Active workflow steps (custom or default)
+  const activeSteps: WorkflowStepConfig[] = (workflowSteps && workflowSteps.length > 0)
+    ? [...workflowSteps].sort((a, b) => a.order - b.order)
+    : DEFAULT_WORKFLOW_STEPS;
+
+  // New step creation state in config modal
+  const [newStepTitle, setNewStepTitle] = useState('');
+  const [newStepSubtitle, setNewStepSubtitle] = useState('');
+
+  // Helper to get checked state of a step for a contract
+  const isStepChecked = (contract: GeneratedContract, step: WorkflowStepConfig): boolean => {
+    if (contract.workflow.checklist && typeof contract.workflow.checklist[step.id] === 'boolean') {
+      return contract.workflow.checklist[step.id];
+    }
+    // Fallback to legacy fields
+    switch (step.id) {
+      case 'sent_delay': return !!contract.workflow.sentWithinDeadline;
+      case 'sign_emp': return !!contract.workflow.employeeSigned;
+      case 'sign_dir': return !!contract.workflow.directorSigned;
+      case 'dpae': return !!contract.workflow.dpaeCompleted;
+      case 'med_visit': return !!contract.workflow.medicalVisitCompleted;
+      case 'sharepoint': return !!contract.workflow.storedInSharepoint;
+      default: return false;
+    }
+  };
+
+  // Toggle dynamic step
+  const handleToggleDynamicStep = (contract: GeneratedContract, step: WorkflowStepConfig) => {
+    const currentVal = isStepChecked(contract, step);
     const newVal = !currentVal;
 
-    const updatedWorkflow: Partial<ContractWorkflowSteps> = {
-      [field]: newVal,
+    const currentChecklist = contract.workflow.checklist || {};
+    const updatedChecklist = {
+      ...currentChecklist,
+      [step.id]: newVal,
     };
 
-    // Auto set date stamps
-    if (field === 'sentWithinDeadline' && newVal && !contract.workflow.sentDate) {
-      updatedWorkflow.sentDate = new Date().toISOString().slice(0, 10);
+    const updatedWorkflow: Partial<ContractWorkflowSteps> = {
+      checklist: updatedChecklist,
+    };
+
+    // Keep legacy properties in sync for backward compatibility & status calculation
+    if (step.id === 'sent_delay') {
+      updatedWorkflow.sentWithinDeadline = newVal;
+      if (newVal && !contract.workflow.sentDate) {
+        updatedWorkflow.sentDate = new Date().toISOString().slice(0, 10);
+      }
     }
-    if (field === 'employeeSigned' && newVal && !contract.workflow.employeeSignedDate) {
-      updatedWorkflow.employeeSignedDate = new Date().toISOString().slice(0, 10);
+    if (step.id === 'sign_emp') {
+      updatedWorkflow.employeeSigned = newVal;
+      if (newVal && !contract.workflow.employeeSignedDate) {
+        updatedWorkflow.employeeSignedDate = new Date().toISOString().slice(0, 10);
+      }
     }
-    if (field === 'directorSigned' && newVal && !contract.workflow.directorSignedDate) {
-      updatedWorkflow.directorSignedDate = new Date().toISOString().slice(0, 10);
+    if (step.id === 'sign_dir') {
+      updatedWorkflow.directorSigned = newVal;
+      if (newVal && !contract.workflow.directorSignedDate) {
+        updatedWorkflow.directorSignedDate = new Date().toISOString().slice(0, 10);
+      }
     }
+    if (step.id === 'dpae') updatedWorkflow.dpaeCompleted = newVal;
+    if (step.id === 'med_visit') updatedWorkflow.medicalVisitCompleted = newVal;
+    if (step.id === 'sharepoint') updatedWorkflow.storedInSharepoint = newVal;
 
     onUpdateContractWorkflow(contract.id, updatedWorkflow);
 
-    // Auto calculate new status
-    const isEmpSigned = field === 'employeeSigned' ? newVal : contract.workflow.employeeSigned;
-    const isDirSigned = field === 'directorSigned' ? newVal : contract.workflow.directorSigned;
-    const isStored = field === 'storedInSharepoint' ? newVal : contract.workflow.storedInSharepoint;
+    // Auto-calculate new status
+    const isEmpSigned = step.id === 'sign_emp' ? newVal : contract.workflow.employeeSigned;
+    const isDirSigned = step.id === 'sign_dir' ? newVal : contract.workflow.directorSigned;
+    const isStored = step.id === 'sharepoint' ? newVal : contract.workflow.storedInSharepoint;
 
     if (isStored) {
       onUpdateContractStatus(contract.id, 'archived');
@@ -84,6 +133,30 @@ export const ContractsHistoryView: React.FC<ContractsHistoryViewProps> = ({
       onUpdateContractStatus(contract.id, 'partially_signed');
     } else {
       onUpdateContractStatus(contract.id, 'pending_signature');
+    }
+  };
+
+  const handleAddCustomStep = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStepTitle.trim() || !onUpdateWorkflowStepConfig) return;
+
+    const newStep: WorkflowStepConfig = {
+      id: `step_${Date.now()}`,
+      title: newStepTitle.trim(),
+      subtitle: newStepSubtitle.trim() || 'Étape du processus RH',
+      order: activeSteps.length + 1,
+    };
+
+    onUpdateWorkflowStepConfig([...activeSteps, newStep]);
+    setNewStepTitle('');
+    setNewStepSubtitle('');
+  };
+
+  const handleDeleteStep = (stepId: string) => {
+    if (!onUpdateWorkflowStepConfig) return;
+    if (window.confirm('Voulez-vous supprimer cette case du processus ?')) {
+      const filtered = activeSteps.filter((s) => s.id !== stepId);
+      onUpdateWorkflowStepConfig(filtered);
     }
   };
 
@@ -130,6 +203,15 @@ export const ContractsHistoryView: React.FC<ContractsHistoryViewProps> = ({
             Tracez l'envoi dans les délais, les signatures des collaborateurs et de la direction, ainsi que l'archivage SharePoint.
           </p>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setIsStepsConfigOpen(true)}
+          className="inline-flex items-center px-3.5 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-bold shadow-2xs transition self-start md:self-auto"
+        >
+          <Settings className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
+          <span>Personnaliser les étapes du processus ({activeSteps.length})</span>
+        </button>
       </div>
 
       {/* KPI Cards */}
@@ -228,6 +310,15 @@ export const ContractsHistoryView: React.FC<ContractsHistoryViewProps> = ({
                       <span className="uppercase text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.2 rounded border border-blue-100">
                         {c.employeeData.contractType}
                       </span>
+                      {c.employeeData.establishmentName && (
+                        <>
+                          <span>•</span>
+                          <span className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 flex items-center gap-1">
+                            <Building2 className="w-3 h-3 text-slate-500" />
+                            {c.employeeData.establishmentName}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -262,10 +353,10 @@ export const ContractsHistoryView: React.FC<ContractsHistoryViewProps> = ({
                 </div>
               </div>
 
-              {/* Workflow Checkboxes Grid (The exact user requirement) */}
+              {/* Dynamic Workflow Checkboxes Grid */}
               <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-200">
                 <div className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider mb-3 flex items-center justify-between">
-                  <span>Étapes de Suivi RH & Signatures (Cochez au fil de l'avancement) :</span>
+                  <span>Étapes de Suivi RH & Signatures ({activeSteps.length} étapes configurées) :</span>
                   {isFullySigned && (
                     <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded font-bold text-[10px] flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" />
@@ -275,101 +366,32 @@ export const ContractsHistoryView: React.FC<ContractsHistoryViewProps> = ({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
-                  {/* Step 1: Envoi dans les délais */}
-                  <label className="flex items-start space-x-2.5 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer hover:border-slate-300 transition">
-                    <input
-                      type="checkbox"
-                      checked={c.workflow.sentWithinDeadline}
-                      onChange={() => handleToggleStep(c, 'sentWithinDeadline')}
-                      className="mt-0.5 rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
-                    />
-                    <div>
-                      <span className="font-bold text-slate-800 block">Envoi dans les délais légaux</span>
-                      <span className="text-[11px] text-slate-500">
-                        {c.workflow.sentWithinDeadline ? `Envoyé le ${formatDateFrench(c.workflow.sentDate)}` : 'À transmettre au salarié'}
-                      </span>
-                    </div>
-                  </label>
-
-                  {/* Step 2: Signature Collaborateur */}
-                  <label className="flex items-start space-x-2.5 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer hover:border-slate-300 transition">
-                    <input
-                      type="checkbox"
-                      checked={c.workflow.employeeSigned}
-                      onChange={() => handleToggleStep(c, 'employeeSigned')}
-                      className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
-                    />
-                    <div>
-                      <span className="font-bold text-slate-800 block">Signature du collaborateur</span>
-                      <span className="text-[11px] text-slate-500">
-                        {c.workflow.employeeSigned ? `Signé le ${formatDateFrench(c.workflow.employeeSignedDate)}` : 'En attente de signature'}
-                      </span>
-                    </div>
-                  </label>
-
-                  {/* Step 3: Signature Directeur */}
-                  <label className="flex items-start space-x-2.5 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer hover:border-slate-300 transition">
-                    <input
-                      type="checkbox"
-                      checked={c.workflow.directorSigned}
-                      onChange={() => handleToggleStep(c, 'directorSigned')}
-                      className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
-                    />
-                    <div>
-                      <span className="font-bold text-slate-800 block">Signature de la direction</span>
-                      <span className="text-[11px] text-slate-500">
-                        {c.workflow.directorSigned ? `Signé le ${formatDateFrench(c.workflow.directorSignedDate)}` : 'En attente paraphe DG'}
-                      </span>
-                    </div>
-                  </label>
-
-                  {/* Step 4: DPAE */}
-                  <label className="flex items-start space-x-2.5 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer hover:border-slate-300 transition">
-                    <input
-                      type="checkbox"
-                      checked={c.workflow.dpaeCompleted}
-                      onChange={() => handleToggleStep(c, 'dpaeCompleted')}
-                      className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
-                    />
-                    <div>
-                      <span className="font-bold text-slate-800 block">DPAE URSSAF déclarée</span>
-                      <span className="text-[11px] text-slate-500">
-                        {c.workflow.dpaeCompleted ? 'Déclaration confirmée' : 'À déclarer avant prise de poste'}
-                      </span>
-                    </div>
-                  </label>
-
-                  {/* Step 5: Visite Médicale */}
-                  <label className="flex items-start space-x-2.5 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer hover:border-slate-300 transition">
-                    <input
-                      type="checkbox"
-                      checked={c.workflow.medicalVisitCompleted}
-                      onChange={() => handleToggleStep(c, 'medicalVisitCompleted')}
-                      className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
-                    />
-                    <div>
-                      <span className="font-bold text-slate-800 block">Visite médicale d'embauche</span>
-                      <span className="text-[11px] text-slate-500">
-                        {c.workflow.medicalVisitCompleted ? 'Aptitude médicale validée' : 'À planifier avec la médecine du travail'}
-                      </span>
-                    </div>
-                  </label>
-
-                  {/* Step 6: SharePoint Storage */}
-                  <label className="flex items-start space-x-2.5 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer hover:border-slate-300 transition">
-                    <input
-                      type="checkbox"
-                      checked={c.workflow.storedInSharepoint}
-                      onChange={() => handleToggleStep(c, 'storedInSharepoint')}
-                      className="mt-0.5 rounded text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer"
-                    />
-                    <div>
-                      <span className="font-bold text-slate-800 block">Archivé sur SharePoint</span>
-                      <span className="text-[11px] text-slate-500">
-                        {c.workflow.storedInSharepoint ? 'Document classé dans le dossier RH' : 'À archiver une fois finalisé'}
-                      </span>
-                    </div>
-                  </label>
+                  {activeSteps.map((step) => {
+                    const checked = isStepChecked(c, step);
+                    return (
+                      <label
+                        key={step.id}
+                        className={`flex items-start space-x-2.5 p-2.5 rounded-lg border cursor-pointer transition ${
+                          checked
+                            ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950 shadow-2xs'
+                            : 'bg-white border-slate-200 hover:border-slate-300 text-slate-800'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => handleToggleDynamicStep(c, step)}
+                          className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <span className="font-bold block truncate">{step.title}</span>
+                          <span className="text-[11px] text-slate-500 block line-clamp-1">
+                            {checked ? 'Validé' : step.subtitle}
+                          </span>
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
 
                 {/* SharePoint link & notes row */}
@@ -439,6 +461,133 @@ export const ContractsHistoryView: React.FC<ContractsHistoryViewProps> = ({
           selectedArticleIds={activePreviewContract.selectedArticleIds}
           contractNumber={activePreviewContract.contractNumber}
         />
+      )}
+
+      {/* Workflow Steps Customization Modal */}
+      {isStepsConfigOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center space-x-2.5">
+                <Settings className="w-5 h-5 text-indigo-400" />
+                <div>
+                  <h3 className="text-base font-bold">Personnalisation des cases à cocher (Processus)</h3>
+                  <p className="text-xs text-slate-400">
+                    Définissez le nombre de cases, leurs titres et sous-titres selon votre propre process RH
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsStepsConfigOpen(false)}
+                className="text-slate-400 hover:text-white transition p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+              {/* Notice Excel */}
+              <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 space-y-1">
+                <div className="font-bold flex items-center gap-1.5 text-xs">
+                  <FileText className="w-4 h-4 text-blue-600" />
+                  Synchronisation Excel 100% Automatique
+                </div>
+                <p className="text-[11px] text-blue-800 leading-relaxed">
+                  Toutes ces cases sont également sauvegardées et modifiables dans l'onglet <strong>Processus_Workflow</strong> de votre export Excel (colonnes <em>ID_Etape, Titre, Sous_Titre, Ordre</em>). Vous pouvez y ajouter autant de cases que souhaité !
+                </p>
+              </div>
+
+              {/* Current steps list */}
+              <div>
+                <h4 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider mb-2">
+                  Cases actuelles du processus ({activeSteps.length})
+                </h4>
+                <div className="space-y-2">
+                  {activeSteps.map((step, idx) => (
+                    <div
+                      key={step.id}
+                      className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white transition"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-800 font-bold flex items-center justify-center text-[11px]">
+                          {idx + 1}
+                        </span>
+                        <div>
+                          <div className="font-bold text-slate-800 text-xs">{step.title}</div>
+                          <div className="text-[11px] text-slate-500">{step.subtitle}</div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteStep(step.id)}
+                        className="text-slate-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded transition"
+                        title="Supprimer cette case"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Add step form */}
+              <form onSubmit={handleAddCustomStep} className="pt-4 border-t border-slate-200 space-y-3">
+                <h4 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <Plus className="w-4 h-4 text-indigo-600" />
+                  Ajouter une nouvelle case au processus
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                      Titre de la case à cocher *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="ex: Transmission badge & clés"
+                      value={newStepTitle}
+                      onChange={(e) => setNewStepTitle(e.target.value)}
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                      Sous-titre / Consigne d'action
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="ex: Remis contre émargement"
+                      value={newStepSubtitle}
+                      onChange={(e) => setNewStepSubtitle(e.target.value)}
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs shadow-xs transition"
+                  >
+                    <Plus className="w-4 h-4 mr-1.5" />
+                    Ajouter cette étape
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsStepsConfigOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-lg transition"
+              >
+                Fermer & Appliquer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

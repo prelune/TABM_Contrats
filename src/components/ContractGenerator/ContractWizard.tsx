@@ -1127,16 +1127,11 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                                     </span>
                                   </div>
 
-                                  {/* Badges: Obligatoire vs Recommandé */}
+                                  {/* Badges: Obligatoire */}
                                   <div className="flex items-center space-x-1.5 shrink-0">
-                                    {art.isMandatory && (
+                                    {(art.isMandatory || (formData.establishmentId && art.mandatoryEstablishmentIds?.includes(formData.establishmentId))) && (
                                       <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
                                         Obligatoire
-                                      </span>
-                                    )}
-                                    {art.isRecommended && (
-                                      <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs">
-                                        Recommandé
                                       </span>
                                     )}
                                     <button
