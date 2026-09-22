@@ -30,7 +30,8 @@ import {
   SlidersHorizontal,
   ChevronRight,
   ShieldCheck,
-  FileCheck
+  FileCheck,
+  Building2
 } from 'lucide-react';
 import { 
   AppDatabase, 
@@ -128,8 +129,13 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
   initialEmployeeData,
   initialArticleIds,
 }) => {
+  // Find initial establishment
+  const initialEst = db.establishments.find(
+    (e) => e.id === (initialEmployeeData?.establishmentId || db.settings.defaultEstablishmentId)
+  ) || db.establishments[0];
+
   // Form State: Salarié & Poste
-  const [formData, setFormData] = useState<ContractEmployeeData>({
+  const [formData, setFormData] = useState<ContractEmployeeData>(() => ({
     civility: 'M.',
     lastName: '',
     firstName: '',
@@ -141,17 +147,26 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     postalCode: '69000',
     city: 'Lyon',
 
-    companyName: db.settings.companyName,
-    companyAddress: db.settings.companyAddress,
-    companyCity: db.settings.companyCity,
-    companyRepresentative: db.settings.companyRepresentative,
-    representativeRole: db.settings.representativeRole,
+    establishmentId: initialEst?.id || 'etab-1',
+    establishmentName: initialEst?.name || '',
+    establishmentSiret: initialEst?.siret || db.settings.companySiret,
+    establishmentApe: initialEst?.ape || db.settings.companyApe,
+    establishmentLogoUrl: initialEst?.logoUrl,
+    establishmentFooterText: initialEst?.footerText,
+
+    companyName: initialEst?.companyName || db.settings.companyName,
+    companyAddress: initialEst?.address || db.settings.companyAddress,
+    companyCity: initialEst ? `${initialEst.postalCode} ${initialEst.city}` : db.settings.companyCity,
+    companyRepresentative: initialEst?.director || db.settings.companyRepresentative,
+    representativeRole: initialEst?.directorRole || db.settings.representativeRole,
+    collectiveAgreement: initialEst?.collectiveAgreement || db.settings.collectiveAgreement,
 
     contractType: 'cdi',
     status: 'conducteur',
     jobTitle: '',
     coefficient: 140,
-    pointValue: db.settings.pointValue,
+    salaryCalculationMode: initialEst?.salaryCalculationMode || 'point_value',
+    pointValue: initialEst?.pointValue ?? db.settings.pointValue,
     monthlyGrossSalary: 0,
     hourlyRate: 0,
     weeklyHours: 35,
@@ -169,9 +184,77 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     workplaceDepot: 'Dépôt Central Vaise - Lyon',
     mobilityZone: 'Ensemble des lignes et dessertes du réseau TABM',
     requiredLicenses: 'Permis D en cours de validité, FIMO Voyageurs et Carte conducteur',
-    collectiveAgreement: db.settings.collectiveAgreement,
     ...initialEmployeeData,
-  });
+  }));
+
+  // Active establishment helper
+  const currentEst = db.establishments.find((e) => e.id === formData.establishmentId) || db.establishments[0];
+  const isEstPointMode = (formData.salaryCalculationMode || currentEst?.salaryCalculationMode || 'point_value') === 'point_value';
+  const effectivePointValue = formData.pointValue || currentEst?.pointValue || db.settings.pointValue || 10.45;
+
+  // Handle switching establishment of affiliation
+  const handleEstablishmentSelect = (estId: string) => {
+    const est = db.establishments.find((e) => e.id === estId);
+    if (!est) return;
+
+    const estMode = est.salaryCalculationMode || 'point_value';
+    const estPoint = est.pointValue ?? db.settings.pointValue;
+
+    setFormData((prev) => {
+      let nextMonthly = prev.monthlyGrossSalary;
+      let nextHourly = prev.hourlyRate;
+
+      if (estMode === 'point_value') {
+        const calc = calculateSalary(prev.coefficient, estPoint, prev.additionalBonus, prev.weeklyHours);
+        nextMonthly = calc.monthlyGrossSalary;
+        nextHourly = calc.hourlyRate;
+      }
+
+      return {
+        ...prev,
+        establishmentId: est.id,
+        establishmentName: est.name,
+        companyName: est.companyName,
+        companyAddress: est.address,
+        companyCity: `${est.postalCode} ${est.city}`,
+        establishmentSiret: est.siret,
+        establishmentApe: est.ape,
+        companyRepresentative: est.director,
+        representativeRole: est.directorRole,
+        collectiveAgreement: est.collectiveAgreement,
+        establishmentLogoUrl: est.logoUrl,
+        establishmentFooterText: est.footerText,
+        salaryCalculationMode: estMode,
+        pointValue: estPoint,
+        monthlyGrossSalary: nextMonthly,
+        hourlyRate: nextHourly,
+      };
+    });
+
+    // Update selected articles to reflect establishment
+    setSelectedArticleIds((prev) => {
+      const valid = prev.filter((id) => {
+        const art = db.articles.find((a) => a.id === id);
+        if (!art) return false;
+        return (
+          !art.validEstablishmentIds ||
+          art.validEstablishmentIds.length === 0 ||
+          art.validEstablishmentIds.includes(est.id)
+        );
+      });
+
+      const mandatoryForEst = db.articles
+        .filter(
+          (a) =>
+            a.validContractTypes.includes(formData.contractType) &&
+            a.validStatuses.includes(formData.status) &&
+            (a.isMandatory || a.mandatoryEstablishmentIds?.includes(est.id))
+        )
+        .map((a) => a.id);
+
+      return Array.from(new Set([...valid, ...mandatoryForEst]));
+    });
+  };
 
   // Selected articles state
   const [selectedArticleIds, setSelectedArticleIds] = useState<string[]>(() => {
@@ -225,19 +308,30 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     }
   }, [db.jobs]);
 
-  // Recalculate salary whenever coefficient, pointValue, or hours change
+  // Recalculate salary when coefficient, pointValue, or hours change
   useEffect(() => {
-    const calc = calculateSalary(formData.coefficient, db.settings.pointValue, formData.additionalBonus, formData.weeklyHours);
-    setFormData((prev) => ({
-      ...prev,
-      pointValue: db.settings.pointValue,
-      monthlyGrossSalary: calc.monthlyGrossSalary,
-      hourlyRate: calc.hourlyRate,
-      monthlyHours: calc.monthlyHours,
-    }));
-  }, [formData.coefficient, db.settings.pointValue, formData.additionalBonus, formData.weeklyHours]);
+    if (isEstPointMode) {
+      const calc = calculateSalary(formData.coefficient, effectivePointValue, formData.additionalBonus, formData.weeklyHours);
+      setFormData((prev) => ({
+        ...prev,
+        pointValue: effectivePointValue,
+        monthlyGrossSalary: calc.monthlyGrossSalary,
+        hourlyRate: calc.hourlyRate,
+        monthlyHours: calc.monthlyHours,
+      }));
+    } else {
+      // In manual / company grid mode: update hourly rate based on manual monthly salary and hours
+      const monthlyHours = (formData.weeklyHours * 52) / 12;
+      const hourlyRate = monthlyHours > 0 ? (formData.monthlyGrossSalary + (formData.additionalBonus || 0)) / monthlyHours : 0;
+      setFormData((prev) => ({
+        ...prev,
+        monthlyHours: Math.round(monthlyHours * 100) / 100,
+        hourlyRate: Math.round(hourlyRate * 100) / 100,
+      }));
+    }
+  }, [formData.coefficient, effectivePointValue, formData.additionalBonus, formData.weeklyHours, isEstPointMode]);
 
-  // Auto-suggest articles when contract type or status changes (unless applying a template / duplicated)
+  // Auto-suggest articles when contract type, status or establishment changes (unless applying a template / duplicated)
   useEffect(() => {
     if (isCustomSelectionRef.current) {
       isCustomSelectionRef.current = false;
@@ -247,13 +341,17 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     const compatible = db.articles.filter(
       (art) =>
         art.validContractTypes.includes(formData.contractType) &&
-        art.validStatuses.includes(formData.status)
+        art.validStatuses.includes(formData.status) &&
+        (!art.validEstablishmentIds ||
+          art.validEstablishmentIds.length === 0 ||
+          !formData.establishmentId ||
+          art.validEstablishmentIds.includes(formData.establishmentId))
     );
     setSelectedArticleIds(compatible.map((a) => a.id));
 
     const currentBlock = getBlockIdForContractType(formData.contractType);
     setExpandedBlockIds([currentBlock, 'block-communs']);
-  }, [formData.contractType, formData.status, db.articles]);
+  }, [formData.contractType, formData.status, formData.establishmentId, db.articles]);
 
   const toggleBlockExpanded = (blockId: string) => {
     setExpandedBlockIds((prev) =>
@@ -291,6 +389,12 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
   const getBlockArticles = (block: ContractBlockConfig): ContractArticle[] => {
     return db.articles
       .filter((art) => {
+        // Establishment compatibility filter
+        if (formData.establishmentId && art.validEstablishmentIds && art.validEstablishmentIds.length > 0) {
+          if (!art.validEstablishmentIds.includes(formData.establishmentId)) {
+            return false;
+          }
+        }
         if (block.filterFn(art)) return true;
         if (block.typeKey && art.validContractTypes.includes(block.typeKey) && art.validContractTypes.length === 1) {
           return true;
@@ -304,17 +408,38 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
   const handleJobSelect = (title: string) => {
     const job = db.jobs.find((j) => j.title === title);
     if (job) {
-      const calc = calculateSalary(job.coefficient, db.settings.pointValue, formData.additionalBonus, job.weeklyHours);
-      setFormData((prev) => ({
-        ...prev,
-        jobTitle: job.title,
-        status: job.category,
-        coefficient: job.coefficient,
-        weeklyHours: job.weeklyHours,
-        requiredLicenses: job.requiredLicenses || prev.requiredLicenses,
-        monthlyGrossSalary: calc.monthlyGrossSalary,
-        hourlyRate: calc.hourlyRate,
-      }));
+      setFormData((prev) => {
+        const est = db.establishments.find((e) => e.id === prev.establishmentId) || db.establishments[0];
+        const mode = prev.salaryCalculationMode || est?.salaryCalculationMode || 'point_value';
+        const point = prev.pointValue || est?.pointValue || db.settings.pointValue || 10.45;
+
+        let nextSalary = prev.monthlyGrossSalary;
+        let nextRate = prev.hourlyRate;
+
+        if (mode === 'point_value') {
+          const calc = calculateSalary(job.coefficient, point, prev.additionalBonus, job.weeklyHours);
+          nextSalary = calc.monthlyGrossSalary;
+          nextRate = calc.hourlyRate;
+        } else {
+          // If manual and salary is not yet set (or 0), calculate a default starting baseline
+          if (nextSalary === 0) {
+            const calc = calculateSalary(job.coefficient, point, prev.additionalBonus, job.weeklyHours);
+            nextSalary = calc.monthlyGrossSalary;
+            nextRate = calc.hourlyRate;
+          }
+        }
+
+        return {
+          ...prev,
+          jobTitle: job.title,
+          status: job.category,
+          coefficient: job.coefficient,
+          weeklyHours: job.weeklyHours,
+          requiredLicenses: job.requiredLicenses || prev.requiredLicenses,
+          monthlyGrossSalary: nextSalary,
+          hourlyRate: nextRate,
+        };
+      });
     }
   };
 
@@ -361,7 +486,11 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     const compatible = db.articles.filter(
       (art) =>
         art.validContractTypes.includes(formData.contractType) &&
-        art.validStatuses.includes(formData.status)
+        art.validStatuses.includes(formData.status) &&
+        (!art.validEstablishmentIds ||
+          art.validEstablishmentIds.length === 0 ||
+          !formData.establishmentId ||
+          art.validEstablishmentIds.includes(formData.establishmentId))
     );
     setSelectedArticleIds(compatible.map((a) => a.id));
   };
@@ -370,15 +499,29 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
   const applicableArticles = db.articles.filter(
     (art) =>
       art.validContractTypes.includes(formData.contractType) &&
-      art.validStatuses.includes(formData.status)
+      art.validStatuses.includes(formData.status) &&
+      (!art.validEstablishmentIds ||
+        art.validEstablishmentIds.length === 0 ||
+        !formData.establishmentId ||
+        art.validEstablishmentIds.includes(formData.establishmentId))
   );
 
+  const isArticleMandatoryForCurrent = (art: ContractArticle): boolean => {
+    if (art.isMandatory) return true;
+    if (formData.establishmentId && art.mandatoryEstablishmentIds?.includes(formData.establishmentId)) {
+      return true;
+    }
+    return false;
+  };
+
   const missingMandatoryArticles = applicableArticles.filter(
-    (art) => art.isMandatory && !selectedArticleIds.includes(art.id)
+    (art) => isArticleMandatoryForCurrent(art) && !selectedArticleIds.includes(art.id)
   );
 
   const handleAddAllMandatoryArticles = () => {
-    const mandatoryIds = applicableArticles.filter((art) => art.isMandatory).map((art) => art.id);
+    const mandatoryIds = applicableArticles
+      .filter((art) => isArticleMandatoryForCurrent(art))
+      .map((art) => art.id);
     setSelectedArticleIds((prev) => Array.from(new Set([...prev, ...mandatoryIds])));
   };
 
@@ -494,7 +637,140 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Form Salarié & Poste (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
-          {/* SECTION 1: Informations Salarié */}
+          {/* SECTION 1: Établissement de Rattachement (Sélection obligatoire) */}
+          <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
+            <div className="px-5 py-3.5 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="p-1 rounded-md bg-blue-100 text-blue-700">
+                  <Building2 className="w-3.5 h-3.5" />
+                </div>
+                <h2 className="text-xs font-extrabold text-slate-900 uppercase tracking-wide">
+                  1. Établissement de Rattachement
+                </h2>
+              </div>
+              <span className="text-[11px] text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                Entité Juridique TABM
+              </span>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <p className="text-xs text-slate-600">
+                Sélectionnez l'établissement auquel ce contrat est rattaché. La raison sociale officielle, le SIRET, le logo d'en-tête et les mentions de pied de page configurées s'appliqueront automatiquement au document.
+              </p>
+
+              {/* Establishments Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {db.establishments.map((est) => {
+                  const isSelected = est.id === formData.establishmentId;
+
+                  return (
+                    <button
+                      key={est.id}
+                      type="button"
+                      onClick={() => handleEstablishmentSelect(est.id)}
+                      className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                        isSelected
+                          ? 'bg-blue-50/80 border-blue-500 shadow-xs ring-2 ring-blue-500/20'
+                          : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-1.5 mb-2">
+                          <div className="flex items-center space-x-2">
+                            <div
+                              className={`w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden ${
+                                isSelected
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-slate-100 text-slate-600 border border-slate-200'
+                              }`}
+                            >
+                              {est.logoUrl ? (
+                                <img src={est.logoUrl} alt="Logo" className="w-full h-full object-contain p-0.5" />
+                              ) : (
+                                <Building2 className="w-4 h-4" />
+                              )}
+                            </div>
+                            <span className="text-xs font-bold text-slate-900 line-clamp-1">
+                              {est.shortName || est.name}
+                            </span>
+                          </div>
+
+                          <div
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                              isSelected ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white'
+                            }`}
+                          >
+                            {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                          </div>
+                        </div>
+
+                        <p className="text-[11px] text-slate-600 font-medium line-clamp-2">
+                          {est.companyName}
+                        </p>
+
+                        <div className="mt-2">
+                          <span className={`inline-block text-[9.5px] font-bold px-2 py-0.5 rounded border ${
+                            (est.salaryCalculationMode || 'point_value') === 'point_value'
+                              ? 'bg-blue-100/80 text-blue-800 border-blue-200'
+                              : 'bg-purple-100/80 text-purple-800 border-purple-200'
+                          }`}>
+                            {(est.salaryCalculationMode || 'point_value') === 'point_value'
+                              ? `Point : ${(est.pointValue || 10.45).toFixed(2)} €`
+                              : 'Grille propre / Manuel'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-500">
+                        <span className="font-mono">SIRET: {est.siret ? est.siret.slice(0, 9) + '...' : '-'}</span>
+                        <span className="font-semibold text-slate-700">{est.city}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Active corporate summary box */}
+              {formData.establishmentId && (
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs">
+                  <div className="space-y-0.5">
+                    <div className="text-slate-800 font-bold flex items-center gap-1.5">
+                      <span className="text-blue-700">Raison Sociale :</span> {formData.companyName}
+                    </div>
+                    <div className="text-[11px] text-slate-600">
+                      SIRET : <span className="font-mono font-medium">{formData.establishmentSiret || '-'}</span> • Code APE : <span className="font-mono">{formData.establishmentApe || '-'}</span> • Directeur : <span className="font-medium">{formData.companyRepresentative} ({formData.representativeRole})</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      {formData.collectiveAgreement}
+                    </div>
+                    <div className="text-[10.5px] font-semibold text-slate-700 pt-0.5">
+                      Politique Salariale :{' '}
+                      <span className={formData.salaryCalculationMode === 'manual' ? 'text-purple-700 font-bold' : 'text-blue-700 font-bold'}>
+                        {formData.salaryCalculationMode === 'manual'
+                          ? 'Saisie manuelle libre / Grille propre d\'établissement'
+                          : `Calcul par valeur du point d'établissement (${(formData.pointValue || 10.45).toFixed(2)} €)`}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                    {formData.establishmentLogoUrl ? (
+                      <span className="inline-flex items-center text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded">
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        Logo personnalisé
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                        Logo standard
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* SECTION 2: Informations Salarié */}
           <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
             <div className="px-5 py-3.5 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -502,7 +778,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                   <User className="w-3.5 h-3.5" />
                 </div>
                 <h2 className="text-xs font-extrabold text-slate-900 uppercase tracking-wide">
-                  1. Salarié & État Civil
+                  2. Salarié & État Civil
                 </h2>
               </div>
               <span className="text-[11px] text-slate-400 font-medium">Champs obligatoires *</span>
@@ -655,7 +931,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
             </div>
           </div>
 
-          {/* SECTION 2: Poste, Métier & Calcul du Salaire */}
+          {/* SECTION 3: Poste, Métier & Calcul du Salaire */}
           <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
             <div className="px-5 py-3.5 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -663,7 +939,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                   <Briefcase className="w-3.5 h-3.5" />
                 </div>
                 <h2 className="text-xs font-extrabold text-slate-900 uppercase tracking-wide">
-                  2. Poste, Métier & Grille Salariale
+                  3. Poste, Métier & Grille Salariale
                 </h2>
               </div>
               <span className="text-[11px] text-blue-700 font-bold bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
@@ -735,28 +1011,202 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                 </select>
               </div>
 
-              {/* Résultat du calcul de salaire épuré */}
-              <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div className="space-y-0.5">
+              {/* Bloc Rémunération adapté à la politique de l'établissement */}
+              <div className="bg-slate-50/90 rounded-xl p-4 border border-slate-200 space-y-3.5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-200/80 pb-2.5">
+                  <div className="flex items-center space-x-2">
                     <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">
-                      Rémunération conventionnelle calculée
+                      Politique de Rémunération ({currentEst?.shortName || 'Établissement'})
                     </span>
-                    <div className="text-xs text-slate-700">
-                      Coeff <span className="font-bold text-slate-900">{formData.coefficient}</span> × Point <span className="font-bold text-slate-900">{formData.pointValue.toFixed(2)} €</span>
-                      {(formData.additionalBonus || 0) > 0 && <span className="text-emerald-700 font-semibold"> + {formData.additionalBonus} € prime</span>}
-                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      isEstPointMode
+                        ? 'bg-blue-100 text-blue-800 border-blue-200'
+                        : 'bg-purple-100 text-purple-800 border-purple-200'
+                    }`}>
+                      {isEstPointMode ? 'Mode Valeur du Point' : 'Mode Saisie Manuelle / Grille'}
+                    </span>
                   </div>
 
-                  <div className="sm:text-right">
-                    <span className="text-lg font-black text-blue-700 tracking-tight block">
-                      {formatEuro(formData.monthlyGrossSalary)} € <span className="text-xs font-medium text-slate-500">brut/mois</span>
-                    </span>
-                    <span className="text-[11px] text-slate-500">
-                      Taux : {formatEuro(formData.hourlyRate)} €/h sur base {formData.weeklyHours}h/sem
-                    </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newMode = isEstPointMode ? 'manual' : 'point_value';
+                        if (newMode === 'point_value') {
+                          const calc = calculateSalary(formData.coefficient, effectivePointValue, formData.additionalBonus, formData.weeklyHours);
+                          setFormData((prev) => ({
+                            ...prev,
+                            salaryCalculationMode: 'point_value',
+                            pointValue: effectivePointValue,
+                            monthlyGrossSalary: calc.monthlyGrossSalary,
+                            hourlyRate: calc.hourlyRate,
+                          }));
+                        } else {
+                          setFormData((prev) => ({
+                            ...prev,
+                            salaryCalculationMode: 'manual',
+                          }));
+                        }
+                      }}
+                      className="text-[10.5px] font-semibold text-slate-600 hover:text-blue-700 bg-white hover:bg-slate-100 px-2 py-1 rounded border border-slate-200 transition"
+                    >
+                      {isEstPointMode ? 'Bascule en saisie libre' : 'Bascule en calcul par point'}
+                    </button>
                   </div>
                 </div>
+
+                {isEstPointMode ? (
+                  /* MODE VALEUR DU POINT */
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                      <div className="sm:col-span-4">
+                        <label className="block text-[10.5px] font-bold text-slate-600 uppercase mb-1">
+                          Valeur du Point ({currentEst?.shortName})
+                        </label>
+                        <div className="px-3 py-2 text-xs font-mono font-bold bg-white border border-slate-200 rounded-lg text-slate-800">
+                          {effectivePointValue.toFixed(2)} €
+                        </div>
+                      </div>
+
+                      <div className="sm:col-span-4">
+                        <label className="block text-[10.5px] font-bold text-slate-600 uppercase mb-1">
+                          Coefficient Métier
+                        </label>
+                        <div className="px-3 py-2 text-xs font-mono font-bold bg-white border border-slate-200 rounded-lg text-blue-700">
+                          {formData.coefficient}
+                        </div>
+                      </div>
+
+                      <div className="sm:col-span-4">
+                        <label className="block text-[10.5px] font-bold text-slate-600 uppercase mb-1">
+                          Primes / Bonus mensuels (€)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="10"
+                          value={formData.additionalBonus || ''}
+                          onChange={(e) => setFormData({ ...formData, additionalBonus: parseFloat(e.target.value) || 0 })}
+                          placeholder="0.00"
+                          className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="text-xs text-blue-900">
+                        <div className="font-semibold">Calcul automatique d'après la grille de l'établissement :</div>
+                        <div className="text-[11px] text-blue-700 mt-0.5">
+                          {formData.coefficient} × {effectivePointValue.toFixed(2)} €
+                          {(formData.additionalBonus || 0) > 0 && ` + ${formData.additionalBonus} € prime`}
+                          {' = '}
+                          <span className="font-bold">{formatEuro(formData.monthlyGrossSalary)} € brut</span>
+                        </div>
+                      </div>
+
+                      <div className="sm:text-right">
+                        <span className="text-base font-black text-blue-800 tracking-tight block">
+                          {formatEuro(formData.monthlyGrossSalary)} € <span className="text-xs font-medium text-slate-600">brut/mois</span>
+                        </span>
+                        <span className="text-[10.5px] text-slate-500">
+                          Taux : {formatEuro(formData.hourlyRate)} €/h ({formData.weeklyHours}h/sem)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* MODE SAISIE MANUELLE / GRILLE PROPRE */
+                  <div className="space-y-3">
+                    <p className="text-xs text-slate-600">
+                      Cet établissement applique sa propre grille salariale. Saisissez directement le salaire brut convenu ou appliquez une valeur indicative.
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                      <div className="sm:col-span-6">
+                        <label className="block text-[11px] font-bold text-purple-900 uppercase tracking-wider mb-1">
+                          Salaire Brut Mensuel de Base (€) *
+                        </label>
+                        <input
+                          type="number"
+                          step="10"
+                          min="0"
+                          required
+                          value={formData.monthlyGrossSalary || ''}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            const monthlyHours = (formData.weeklyHours * 52) / 12;
+                            const rate = monthlyHours > 0 ? (val + (formData.additionalBonus || 0)) / monthlyHours : 0;
+                            setFormData({
+                              ...formData,
+                              monthlyGrossSalary: val,
+                              hourlyRate: Math.round(rate * 100) / 100,
+                            });
+                          }}
+                          placeholder="Ex: 2450.00"
+                          className="w-full px-3 py-2 text-xs bg-white border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-hidden font-bold text-slate-900 text-sm"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-6">
+                        <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                          Primes Complémentaires (€)
+                        </label>
+                        <input
+                          type="number"
+                          step="10"
+                          min="0"
+                          value={formData.additionalBonus || ''}
+                          onChange={(e) => {
+                            const bonus = parseFloat(e.target.value) || 0;
+                            const monthlyHours = (formData.weeklyHours * 52) / 12;
+                            const rate = monthlyHours > 0 ? (formData.monthlyGrossSalary + bonus) / monthlyHours : 0;
+                            setFormData({
+                              ...formData,
+                              additionalBonus: bonus,
+                              hourlyRate: Math.round(rate * 100) / 100,
+                            });
+                          }}
+                          placeholder="0.00"
+                          className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-hidden font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-purple-50/70 rounded-xl border border-purple-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div>
+                        <div className="text-xs font-bold text-purple-900">
+                          Rémunération Brute Contractuelle
+                        </div>
+                        <div className="text-[11px] text-purple-700">
+                          Taux horaire calculé : <span className="font-bold">{formatEuro(formData.hourlyRate)} €/h</span> (sur {formData.weeklyHours}h/sem • {formData.monthlyHours}h/mois)
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const calc = calculateSalary(formData.coefficient, effectivePointValue, formData.additionalBonus, formData.weeklyHours);
+                            setFormData((prev) => ({
+                              ...prev,
+                              monthlyGrossSalary: calc.monthlyGrossSalary,
+                              hourlyRate: calc.hourlyRate,
+                            }));
+                          }}
+                          className="text-[10px] font-semibold text-purple-700 hover:text-purple-900 bg-white px-2.5 py-1 rounded border border-purple-300 hover:bg-purple-100/50 transition"
+                        >
+                          Remplir avec valeur indicative ({effectivePointValue.toFixed(2)} €)
+                        </button>
+
+                        <div className="text-right">
+                          <span className="text-base font-black text-purple-900 tracking-tight block">
+                            {formatEuro(formData.monthlyGrossSalary + (formData.additionalBonus || 0))} €
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Spécificités CDD si CDD / Avenant CDD */}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Calculator, 
   Plus, 
@@ -10,15 +10,21 @@ import {
   Euro, 
   Info, 
   Briefcase,
-  AlertCircle
+  AlertCircle,
+  Building2,
+  Sliders,
+  CheckCircle2,
+  HelpCircle
 } from 'lucide-react';
-import { JobPosition, EmployeeStatus, AppSettings } from '../../types';
+import { JobPosition, EmployeeStatus, AppSettings, Establishment } from '../../types';
 import { EMPLOYEE_STATUS_LABELS } from '../../data/defaultData';
 import { formatEuro } from '../../utils/contractCompiler';
 
 interface SalaryMatrixViewProps {
   settings: AppSettings;
   onUpdateSettings: (newSettings: AppSettings) => void;
+  establishments?: Establishment[];
+  onUpdateEstablishment?: (id: string, updated: Partial<Establishment>) => void;
   jobs: JobPosition[];
   onAddJob: (job: Omit<JobPosition, 'id'>) => void;
   onUpdateJob: (id: string, updated: Partial<JobPosition>) => void;
@@ -28,15 +34,33 @@ interface SalaryMatrixViewProps {
 export const SalaryMatrixView: React.FC<SalaryMatrixViewProps> = ({
   settings,
   onUpdateSettings,
+  establishments = [],
+  onUpdateEstablishment,
   jobs,
   onAddJob,
   onUpdateJob,
   onDeleteJob,
 }) => {
-  const [pointValueInput, setPointValueInput] = useState<string>(String(settings.pointValue));
+  // Active establishment for salary projection / configuration
+  const [selectedEstId, setSelectedEstId] = useState<string>(
+    settings.defaultEstablishmentId || establishments[0]?.id || ''
+  );
+
+  const selectedEst = establishments.find((e) => e.id === selectedEstId) || establishments[0];
+  const isPointMode = (selectedEst?.salaryCalculationMode || 'point_value') === 'point_value';
+  const effectivePointValue = selectedEst?.pointValue ?? settings.pointValue ?? 10.45;
+
+  const [pointValueInput, setPointValueInput] = useState<string>(String(effectivePointValue));
   const [pointSavedNotification, setPointSavedNotification] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // Sync point input when selected establishment changes
+  useEffect(() => {
+    if (selectedEst) {
+      setPointValueInput(String(selectedEst.pointValue ?? settings.pointValue ?? 10.45));
+    }
+  }, [selectedEstId, selectedEst?.pointValue]);
 
   // Modal for new / edit job
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,10 +76,19 @@ export const SalaryMatrixView: React.FC<SalaryMatrixViewProps> = ({
 
   const handleSavePointValue = () => {
     const val = parseFloat(pointValueInput.replace(',', '.'));
-    if (!isNaN(val) && val > 0) {
+    if (!isNaN(val) && val > 0 && selectedEst) {
+      if (onUpdateEstablishment) {
+        onUpdateEstablishment(selectedEst.id, { pointValue: val, salaryCalculationMode: 'point_value' });
+      }
       onUpdateSettings({ ...settings, pointValue: val });
       setPointSavedNotification(true);
       setTimeout(() => setPointSavedNotification(false), 2500);
+    }
+  };
+
+  const handleSwitchMode = (mode: 'point_value' | 'manual') => {
+    if (selectedEst && onUpdateEstablishment) {
+      onUpdateEstablishment(selectedEst.id, { salaryCalculationMode: mode });
     }
   };
 
@@ -143,69 +176,167 @@ export const SalaryMatrixView: React.FC<SalaryMatrixViewProps> = ({
         </button>
       </div>
 
-      {/* Point Value Card */}
-      <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-6 mb-8">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="max-w-2xl">
-            <div className="flex items-center space-x-2 text-blue-700 font-bold text-sm mb-1">
-              <Euro className="w-4 h-4" />
-              <span>Paramètre Fondamental de Rémunération</span>
+      {/* Establishment Selector & Salary Policy Header Card */}
+      <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-6 mb-8 space-y-5">
+        <div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 border-b border-slate-200">
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5" />
+                Établissement de Référence pour les Salaires
+              </span>
+              <h2 className="text-base font-bold text-slate-900 mt-0.5">
+                Sélectionnez un établissement pour visualiser et ajuster sa politique salariale
+              </h2>
             </div>
-            <h2 className="text-lg font-bold text-slate-900">
-              Valeur Actuelle du Point d'Entreprise
-            </h2>
-            <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-              Le salaire brut mensuel de chaque collaborateur est calculé en multipliant le{' '}
-              <strong className="text-slate-800">coefficient rattaché à son métier</strong> par la{' '}
-              <strong className="text-slate-800">valeur du point</strong> fixée par la direction :{' '}
-              <code className="bg-slate-100 px-1.5 py-0.5 rounded font-mono text-slate-800 font-semibold">
-                Salaire Brut = Coefficient × Valeur du Point
-              </code>.
-            </p>
+            <span className="text-xs text-slate-500">
+              Les coefficients métiers restent communs à l'ensemble du groupe.
+            </span>
           </div>
 
-          <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 self-stretch sm:self-auto">
-            <div className="relative">
-              <label htmlFor="input-point-val" className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                Valeur du point (€)
-              </label>
-              <div className="relative rounded-md shadow-xs">
-                <input
-                  id="input-point-val"
-                  type="text"
-                  value={pointValueInput}
-                  onChange={(e) => setPointValueInput(e.target.value)}
-                  className="w-36 px-3 py-2 text-base font-bold text-slate-900 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
-                  placeholder="ex: 10.92"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">
-                  €
-                </span>
-              </div>
-            </div>
+          {/* Establishment Switcher Tabs */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-3">
+            {establishments.map((est) => {
+              const isSelected = est.id === selectedEstId;
+              const estMode = est.salaryCalculationMode || 'point_value';
+              const estPoint = est.pointValue ?? 10.45;
 
-            <button
-              onClick={handleSavePointValue}
-              className={`mt-5 px-4 py-2 rounded-lg text-xs font-bold transition flex items-center ${
-                pointSavedNotification
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-900 hover:bg-slate-800 text-white shadow-xs'
-              }`}
-            >
-              {pointSavedNotification ? (
-                <>
-                  <Check className="w-4 h-4 mr-1.5 text-white" />
-                  Enregistré !
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-1.5" />
-                  Mettre à jour
-                </>
-              )}
-            </button>
+              return (
+                <button
+                  key={est.id}
+                  type="button"
+                  onClick={() => setSelectedEstId(est.id)}
+                  className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                    isSelected
+                      ? 'bg-blue-50/70 border-blue-500 shadow-xs ring-2 ring-blue-500/20'
+                      : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-1">
+                    <span className="font-bold text-xs text-slate-900 line-clamp-1">
+                      {est.shortName || est.name}
+                    </span>
+                    {isSelected && (
+                      <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0 mt-1" />
+                    )}
+                  </div>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                      estMode === 'point_value'
+                        ? 'bg-blue-100/70 text-blue-800 border-blue-200'
+                        : 'bg-purple-100/70 text-purple-800 border-purple-200'
+                    }`}>
+                      {estMode === 'point_value' ? `Point : ${estPoint.toFixed(2)} €` : 'Grille propre / Manuel'}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {est.code}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
+
+        {/* Selected Establishment Configuration Detail */}
+        {selectedEst && (
+          <div className={`p-4 rounded-xl border ${
+            isPointMode ? 'bg-blue-50/40 border-blue-200' : 'bg-purple-50/40 border-purple-200'
+          }`}>
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
+              <div className="space-y-1 max-w-2xl">
+                <div className="flex items-center space-x-2">
+                  <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                    isPointMode ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white'
+                  }`}>
+                    {isPointMode ? 'Mode : Calcul automatique par Valeur du Point' : 'Mode : Saisie Manuelle / Grille Propre'}
+                  </span>
+                  <span className="text-xs font-bold text-slate-800">
+                    {selectedEst.name}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                  {isPointMode ? (
+                    <>
+                      Pour cet établissement, le salaire brut mensuel de base est obtenu via :{' '}
+                      <code className="bg-white px-1.5 py-0.5 rounded font-mono text-blue-900 border border-blue-200 font-bold">
+                        Coefficient métier × {effectivePointValue.toFixed(2)} €
+                      </code>.
+                    </>
+                  ) : (
+                    <>
+                      Cet établissement applique sa propre grille ou des salaires négociés. Le salaire brut est renseigné <strong>à la main</strong> lors de la création d'un contrat sans être contraint par une valeur de point.
+                    </>
+                  )}
+                </p>
+              </div>
+
+              {/* Controls */}
+              <div className="flex flex-wrap items-center gap-3">
+                {isPointMode ? (
+                  <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200 shadow-2xs">
+                    <div>
+                      <label htmlFor="input-point-val" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        Valeur du point ({selectedEst.shortName || 'Établissement'})
+                      </label>
+                      <div className="relative mt-0.5">
+                        <input
+                          id="input-point-val"
+                          type="text"
+                          value={pointValueInput}
+                          onChange={(e) => setPointValueInput(e.target.value)}
+                          className="w-28 px-2 py-1 text-sm font-bold text-slate-900 bg-slate-50 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-hidden text-right pr-6"
+                          placeholder="10.45"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                          €
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handleSavePointValue}
+                      className={`px-3 py-2 rounded-lg text-xs font-bold transition flex items-center shrink-0 self-end ${
+                        pointSavedNotification
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white shadow-2xs'
+                      }`}
+                    >
+                      {pointSavedNotification ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 mr-1" />
+                          Enregistré !
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-3.5 h-3.5 mr-1" />
+                          Sauvegarder
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleSwitchMode('point_value')}
+                    className="px-3.5 py-2 rounded-lg text-xs font-bold bg-white border border-purple-300 hover:bg-purple-100 text-purple-900 transition flex items-center shadow-2xs"
+                  >
+                    <Euro className="w-3.5 h-3.5 mr-1.5 text-purple-700" />
+                    Basculer cet établissement en calcul par point
+                  </button>
+                )}
+
+                {isPointMode && (
+                  <button
+                    onClick={() => handleSwitchMode('manual')}
+                    className="px-3 py-2 rounded-lg text-xs font-semibold bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 transition"
+                  >
+                    Passer en saisie manuelle
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Job Positions Table Section */}
@@ -248,7 +379,9 @@ export const SalaryMatrixView: React.FC<SalaryMatrixViewProps> = ({
                 <th className="px-4 py-3">Intitulé du Métier</th>
                 <th className="px-4 py-3">Statut</th>
                 <th className="px-4 py-3 text-center">Coefficient</th>
-                <th className="px-4 py-3 text-right">Salaire Brut Base</th>
+                <th className="px-4 py-3 text-right">
+                  Salaire Brut Base ({selectedEst?.shortName || 'Établissement'})
+                </th>
                 <th className="px-4 py-3 text-right">Taux Horaire</th>
                 <th className="px-4 py-3">Permis / Titres Exigés</th>
                 <th className="px-4 py-3 text-right">Actions</th>
@@ -256,7 +389,7 @@ export const SalaryMatrixView: React.FC<SalaryMatrixViewProps> = ({
             </thead>
             <tbody className="divide-y divide-slate-200">
               {filteredJobs.map((job) => {
-                const monthlySalary = job.coefficient * settings.pointValue;
+                const monthlySalary = job.coefficient * effectivePointValue;
                 const monthlyHours = (job.weeklyHours * 52) / 12;
                 const hourlyRate = monthlyHours > 0 ? monthlySalary / monthlyHours : 0;
 
@@ -278,14 +411,36 @@ export const SalaryMatrixView: React.FC<SalaryMatrixViewProps> = ({
                     <td className="px-4 py-3.5 text-center font-mono font-bold text-sm text-blue-700">
                       {job.coefficient}
                     </td>
-                    <td className="px-4 py-3.5 text-right font-bold text-slate-900 text-sm whitespace-nowrap">
-                      {formatEuro(monthlySalary)} €
-                      <span className="block text-[10px] font-normal text-slate-400">
-                        {job.weeklyHours}h/sem ({monthlyHours.toFixed(1)}h/mois)
-                      </span>
+                    <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                      {isPointMode ? (
+                        <>
+                          <div className="font-bold text-slate-900 text-sm">
+                            {formatEuro(monthlySalary)} €
+                          </div>
+                          <span className="block text-[10px] font-normal text-slate-400">
+                            {job.weeklyHours}h/sem ({monthlyHours.toFixed(1)}h/mois)
+                          </span>
+                        </>
+                      ) : (
+                        <div>
+                          <span className="inline-block px-2 py-0.5 text-[10.5px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 rounded">
+                            Grille d'établissement
+                          </span>
+                          <span className="block text-[10px] text-slate-500 mt-0.5">
+                            Saisie manuelle contrat
+                          </span>
+                          <span className="block text-[9px] text-slate-400 italic">
+                            (Réf. indicatif : {formatEuro(monthlySalary)} €)
+                          </span>
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3.5 text-right font-medium text-slate-600 whitespace-nowrap">
-                      {formatEuro(hourlyRate)} €/h
+                      {isPointMode ? (
+                        <span>{formatEuro(hourlyRate)} €/h</span>
+                      ) : (
+                        <span className="text-slate-400 italic text-xs">Selon contrat</span>
+                      )}
                     </td>
                     <td className="px-4 py-3.5">
                       {job.requiredLicenses ? (

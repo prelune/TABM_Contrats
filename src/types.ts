@@ -29,6 +29,8 @@ export interface Establishment {
   collectiveAgreement: string; // Convention collective applicable
   logoUrl?: string; // Logo de l'établissement (URL ou data-URL base64)
   footerText?: string; // Mention personnalisée de pied de page
+  salaryCalculationMode?: 'point_value' | 'manual'; // 'point_value' (Calcul par valeur du point) ou 'manual' (Grille propre / Saisie manuelle)
+  pointValue?: number; // Valeur du point spécifique à l'établissement (ex: 10.45 €)
 }
 
 export interface WorkflowStepConfig {
@@ -106,6 +108,7 @@ export interface ContractEmployeeData {
   status: EmployeeStatus;
   jobTitle: string;
   coefficient: number;
+  salaryCalculationMode?: 'point_value' | 'manual';
   pointValue: number;
   monthlyGrossSalary: number;
   hourlyRate: number;

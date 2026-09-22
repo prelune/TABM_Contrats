@@ -246,11 +246,12 @@ export function exportDatabaseToExcel(db: AppDatabase, filenamePrefix = 'TABM_Co
   const wsSettings = XLSX.utils.json_to_sheet(settingsRows);
   XLSX.utils.book_append_sheet(wb, wsSettings, 'Parametres');
 
-  // 2. Feuille ETABLISSEMENTS (Gestion des 3 établissements distincts)
+  // 2. Feuille ETABLISSEMENTS (Gestion des établissements distincts et politique salariale)
   const establishmentsRows = (db.establishments || DEFAULT_ESTABLISHMENTS).map((etab) => ({
     ID: etab.id,
     Code: etab.code,
     Nom_Etablissement: etab.name,
+    Nom_Court: etab.shortName || etab.name,
     Raison_Sociale: etab.companyName,
     Adresse: etab.address,
     Code_Postal: etab.postalCode,
@@ -260,6 +261,8 @@ export function exportDatabaseToExcel(db: AppDatabase, filenamePrefix = 'TABM_Co
     Directeur_Representant: etab.director,
     Role_Representant: etab.directorRole,
     Convention_Collective: etab.collectiveAgreement,
+    Mode_Calcul_Salaire: etab.salaryCalculationMode === 'manual' ? 'MANUEL' : 'VALEUR_POINT',
+    Valeur_Point: Number(etab.pointValue ?? db.settings.pointValue ?? 10.45),
     Logo_URL: etab.logoUrl || '',
     Mention_Pied_De_Page: etab.footerText || '',
   }));
@@ -354,10 +357,13 @@ export function exportDatabaseToExcel(db: AppDatabase, filenamePrefix = 'TABM_Co
       Statut_Salarie: c.employeeData.status,
       Metier: c.employeeData.jobTitle,
       Coefficient: c.employeeData.coefficient,
+      Mode_Calcul_Salaire: c.employeeData.salaryCalculationMode === 'manual' ? 'MANUEL' : 'VALEUR_POINT',
       Valeur_Point: c.employeeData.pointValue,
       Salaire_Mensuel_Brut: c.employeeData.monthlyGrossSalary,
       Taux_Horaire: c.employeeData.hourlyRate,
       Heures_Hebdo: c.employeeData.weeklyHours,
+      Logo_Etablissement: c.employeeData.establishmentLogoUrl ? 'OUI' : 'NON',
+      Pied_De_Page_Etablissement: c.employeeData.establishmentFooterText || '',
       Date_Debut: c.employeeData.startDate,
       Date_Fin: c.employeeData.endDate || '',
       Motif_Recours_CDD: c.employeeData.cddReason || '',
@@ -464,6 +470,7 @@ export function parseExcelToDatabase(dataBuffer: ArrayBuffer): AppDatabase {
         id: String(r.ID || `etab-${idx + 1}`),
         code: String(r.Code || `ETAB-${idx + 1}`),
         name: String(r.Nom_Etablissement || r.name || `Établissement ${idx + 1}`),
+        shortName: String(r.Nom_Court || r.shortName || r.Nom_Etablissement || ''),
         companyName: String(r.Raison_Sociale || r.companyName || newDb.settings.companyName),
         address: String(r.Adresse || r.address || ''),
         postalCode: String(r.Code_Postal || r.postalCode || '69000'),
@@ -473,6 +480,8 @@ export function parseExcelToDatabase(dataBuffer: ArrayBuffer): AppDatabase {
         director: String(r.Directeur_Representant || r.director || newDb.settings.companyRepresentative),
         directorRole: String(r.Role_Representant || r.directorRole || newDb.settings.representativeRole),
         collectiveAgreement: String(r.Convention_Collective || r.collectiveAgreement || newDb.settings.collectiveAgreement),
+        salaryCalculationMode: String(r.Mode_Calcul_Salaire || '').toUpperCase() === 'MANUEL' ? 'manual' : 'point_value',
+        pointValue: r.Valeur_Point !== undefined && r.Valeur_Point !== '' ? Number(r.Valeur_Point) : (newDb.settings.pointValue || 10.45),
         logoUrl: String(r.Logo_URL || r.logoUrl || ''),
         footerText: String(r.Mention_Pied_De_Page || r.footerText || ''),
       }));
@@ -641,7 +650,7 @@ export function parseExcelToDatabase(dataBuffer: ArrayBuffer): AppDatabase {
           establishmentSiret: matchedEtab?.siret,
           establishmentApe: matchedEtab?.ape,
           establishmentLogoUrl: matchedEtab?.logoUrl,
-          establishmentFooterText: matchedEtab?.footerText,
+          establishmentFooterText: String(r.Pied_De_Page_Etablissement || matchedEtab?.footerText || ''),
 
           companyName: compName,
           companyAddress: compAddr,
@@ -650,11 +659,15 @@ export function parseExcelToDatabase(dataBuffer: ArrayBuffer): AppDatabase {
           representativeRole: compRole,
           collectiveAgreement: compAgreement,
 
+          salaryCalculationMode: String(r.Mode_Calcul_Salaire || '').toUpperCase() === 'MANUEL' 
+            ? 'manual' 
+            : (matchedEtab?.salaryCalculationMode || 'point_value'),
+
           contractType: (String(r.Type_Contrat || 'cdi').toLowerCase() as any),
           status: (String(r.Statut_Salarie || 'conducteur').toLowerCase() as any),
           jobTitle: String(r.Metier || ''),
           coefficient: Number(r.Coefficient || 140),
-          pointValue: Number(r.Valeur_Point || newDb.settings.pointValue),
+          pointValue: Number(r.Valeur_Point || matchedEtab?.pointValue || newDb.settings.pointValue),
           monthlyGrossSalary: Number(r.Salaire_Mensuel_Brut || 0),
           hourlyRate: Number(r.Taux_Horaire || 0),
           weeklyHours: Number(r.Heures_Hebdo || 35),

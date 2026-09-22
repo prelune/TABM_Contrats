@@ -13,7 +13,8 @@ import {
   JobPosition, 
   AppSettings,
   ContractEmployeeData,
-  WorkflowStepConfig
+  WorkflowStepConfig,
+  Establishment
 } from './types';
 import { 
   createEmptyDatabase, 
@@ -27,6 +28,7 @@ import { ContractWizard } from './components/ContractGenerator/ContractWizard';
 import { ContractsHistoryView } from './components/WorkflowHistory/ContractsHistoryView';
 import { ArticlesList } from './components/ArticlesManager/ArticlesList';
 import { SalaryMatrixView } from './components/SalaryMatrix/SalaryMatrixView';
+import { SettingsView } from './components/SettingsManager/SettingsView';
 import { TagsReferenceModal } from './components/TagsReference/TagsReferenceModal';
 import { 
   CheckCircle2, 
@@ -50,7 +52,7 @@ export default function App() {
     return createEmptyDatabase();
   });
 
-  const [activeTab, setActiveTab] = useState<'generator' | 'history' | 'articles' | 'matrix' | 'tags'>('generator');
+  const [activeTab, setActiveTab] = useState<'generator' | 'history' | 'articles' | 'matrix' | 'settings' | 'tags'>('generator');
   const [isTagsModalOpen, setIsTagsModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'info' | 'error'; text: string } | null>(null);
   
@@ -260,6 +262,14 @@ export default function App() {
     showToast('Étapes du processus de signature mises à jour !', 'success');
   };
 
+  const handleUpdateEstablishment = (id: string, updated: Partial<Establishment>) => {
+    setDb((prev) => ({
+      ...prev,
+      establishments: prev.establishments.map((e) => (e.id === id ? { ...e, ...updated } : e)),
+    }));
+    showToast('Paramètres de l’établissement enregistrés !', 'success');
+  };
+
   const isMemoryEmpty = db.articles.length === 0 && db.jobs.length === 0 && db.contracts.length === 0;
 
   return (
@@ -435,10 +445,22 @@ export default function App() {
               <SalaryMatrixView
                 settings={db.settings}
                 onUpdateSettings={handleUpdateSettings}
+                establishments={db.establishments}
+                onUpdateEstablishment={handleUpdateEstablishment}
                 jobs={db.jobs}
                 onAddJob={handleAddJob}
                 onUpdateJob={handleUpdateJob}
                 onDeleteJob={handleDeleteJob}
+              />
+            )}
+
+            {activeTab === 'settings' && (
+              <SettingsView
+                establishments={db.establishments}
+                settings={db.settings}
+                onUpdateEstablishment={handleUpdateEstablishment}
+                onUpdateSettings={handleUpdateSettings}
+                onExportExcel={handleExportExcel}
               />
             )}
           </>

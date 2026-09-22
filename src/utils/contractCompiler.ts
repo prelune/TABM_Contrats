@@ -200,7 +200,8 @@ D'autre part,
 IL A ÉTÉ CONVENU ET ARRÊTÉ CE QUI SUIT :
   `.trim();
 
-  const legalFooter = `Raison Sociale : ${data.companyName} | ${data.companyAddress}, ${data.companyCity} | SIRET : ${data.establishmentSiret || '482 910 324 00028'} | APE : ${data.establishmentApe || '4939A'} | ${data.collectiveAgreement}`;
+  const customFooterNotice = data.establishmentFooterText ? ` | ${data.establishmentFooterText}` : '';
+  const legalFooter = `Raison Sociale : ${data.companyName} | ${data.companyAddress}, ${data.companyCity} | SIRET : ${data.establishmentSiret || '482 910 324 00028'} | APE : ${data.establishmentApe || '4939A'} | ${data.collectiveAgreement}${customFooterNotice}`;
 
   const footerHtml = `
 Fait à ${data.companyCity || 'Lyon'}, le ${formatDateFrench(new Date().toISOString().slice(0, 10))},
@@ -354,6 +355,7 @@ export function exportContractToWordDocument(
           ${data.establishmentLogoUrl ? `<td width="100" style="vertical-align: top; padding-right: 15pt;"><img src="${data.establishmentLogoUrl}" width="90" style="max-height: 50pt; object-fit: contain;" alt="Logo" /></td>` : ''}
           <td align="left">
             <strong style="font-family: Arial, sans-serif; font-size: 13pt; color: #1e3a8a;">${data.companyName.toUpperCase()}</strong><br/>
+            ${data.establishmentName ? `<strong style="font-family: Arial, sans-serif; font-size: 10pt; color: #2563eb;">${data.establishmentName}</strong><br/>` : ''}
             <span style="font-size: 9pt; color: #475569;">${data.companyAddress}, ${data.companyCity}</span><br/>
             <span style="font-size: 8.5pt; color: #64748b;">${data.collectiveAgreement}</span>
           </td>
@@ -401,6 +403,7 @@ export function exportContractToWordDocument(
       <div style="margin-top: 35pt; border-top: 1pt solid #cbd5e1; padding-top: 8pt; font-family: Arial, sans-serif; font-size: 8pt; color: #64748b; text-align: center;">
         Raison Sociale : <strong>${data.companyName}</strong> — SIRET : ${data.establishmentSiret || '482 910 324 00028'} — APE : ${data.establishmentApe || '4939A'}<br/>
         Siège : ${data.companyAddress}, ${data.companyCity} — ${data.collectiveAgreement}
+        ${data.establishmentFooterText ? `<br/><div style="color: #475569; font-size: 7.5pt; margin-top: 4pt; font-style: italic;">${data.establishmentFooterText}</div>` : ''}
       </div>
     </body>
     </html>

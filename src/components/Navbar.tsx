@@ -11,13 +11,14 @@ import {
   Sparkles, 
   CheckCircle2, 
   AlertTriangle,
+  Sliders,
   Bus
 } from 'lucide-react';
 import { AppDatabase } from '../types';
 
 interface NavbarProps {
-  activeTab: 'generator' | 'history' | 'articles' | 'matrix' | 'tags';
-  setActiveTab: (tab: 'generator' | 'history' | 'articles' | 'matrix' | 'tags') => void;
+  activeTab: 'generator' | 'history' | 'articles' | 'matrix' | 'settings' | 'tags';
+  setActiveTab: (tab: 'generator' | 'history' | 'articles' | 'matrix' | 'settings' | 'tags') => void;
   db: AppDatabase;
   onExportExcel: () => void;
   onImportExcel: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -216,10 +217,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <Calculator className="w-4 h-4 mr-2 text-amber-400" />
-            Métiers & Valeur du Point
-            <span className="ml-2 text-xs text-slate-400 hidden md:inline">
-              ({db.settings.pointValue.toFixed(2)} €)
-            </span>
+            Métiers & Salaires
+          </button>
+
+          <button
+            id="tab-btn-settings"
+            onClick={() => setActiveTab('settings')}
+            className={`flex items-center px-3.5 py-2.5 text-sm font-semibold border-b-2 whitespace-nowrap transition ${
+              activeTab === 'settings'
+                ? 'border-blue-500 text-white bg-slate-800/50'
+                : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+            }`}
+          >
+            <Sliders className="w-4 h-4 mr-2 text-sky-400" />
+            Paramètres
           </button>
 
           <button
