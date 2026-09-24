@@ -50,6 +50,12 @@
     margin-top: 2rem !important;
   }
 
+  .signature-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 2rem !important;
+  }
+
   @page {
     size: A4 portrait;
     margin: 15mm 15mm 15mm 15mm;
