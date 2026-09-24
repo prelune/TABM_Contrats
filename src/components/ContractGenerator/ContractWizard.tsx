@@ -634,9 +634,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Form Salarié & Poste (7 cols) */}
-        <div className="lg:col-span-7 space-y-6">
+      <div className="space-y-6">
           {/* SECTION 1: Établissement de Rattachement (Sélection obligatoire) */}
           <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
             <div className="px-5 py-3.5 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
@@ -1341,22 +1339,21 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Right Column: Sélection intuitive & épurée des clauses (5 cols) */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden sticky top-20">
+        {/* SECTION 4: Briques Articles & Clauses du Contrat (Sous le formulaire) */}
+        <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
             {/* Header selection articles */}
             <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Layers className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-xs font-bold uppercase tracking-wider">
-                  Clauses & Articles du Contrat
-                </h3>
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider">
+                    4. Clauses & Briques Articles du Contrat
+                  </h3>
+                </div>
               </div>
 
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
-                {selectedArticleIds.length} clause{selectedArticleIds.length > 1 ? 's' : ''}
+              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+                {selectedArticleIds.length} clause{selectedArticleIds.length > 1 ? 's' : ''} sélectionnée{selectedArticleIds.length > 1 ? 's' : ''}
               </span>
             </div>
 
@@ -1655,7 +1652,6 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                 <span>Sauvegarder cette sélection comme modèle</span>
               </button>
             </div>
-          </div>
         </div>
       </div>
 

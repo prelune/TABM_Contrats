@@ -266,18 +266,18 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
               </div>
 
               {/* Parties */}
-              <div className="my-6 whitespace-pre-line text-justify text-xs sm:text-[13px] leading-relaxed bg-slate-50 p-4 rounded border border-slate-200">
+              <div className="my-6 whitespace-pre-line text-left text-xs sm:text-[13px] leading-relaxed bg-slate-50 p-4 rounded border border-slate-200">
                 {doc.partiesHtml}
               </div>
 
               {/* Articles strictly numbered sequentially */}
               <div className="space-y-6 my-6">
                 {doc.compiledArticles.map((art) => (
-                  <div key={art.id} className="article-block text-justify">
-                    <h3 className="font-bold text-xs sm:text-sm font-sans uppercase text-slate-900 border-b border-slate-200 pb-1 mb-2">
+                  <div key={art.id} className="article-block text-left">
+                    <h3 className="font-bold text-xs sm:text-sm font-sans uppercase text-slate-900 border-b border-slate-200 pb-1 mb-2 text-left">
                       {art.title}
                     </h3>
-                    <div className="whitespace-pre-line text-xs sm:text-[13px] leading-relaxed text-slate-800">
+                    <div className="whitespace-pre-line text-xs sm:text-[13px] leading-relaxed text-slate-800 text-left">
                       {art.text}
                     </div>
                   </div>
@@ -286,7 +286,7 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
 
               {/* Footer Signatures */}
               <div className="signatures-block mt-12 pt-6 border-t-2 border-slate-900">
-                <div className="whitespace-pre-line text-xs mb-6">
+                <div className="whitespace-pre-line text-xs mb-6 text-left">
                   Fait à {employeeData.companyCity || 'Lyon'}, le {new Date().toLocaleDateString('fr-FR')}, en deux exemplaires originaux.
                   <br />
                   <em className="text-[11px] text-slate-500">
@@ -295,7 +295,7 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
                 </div>
 
                 <div className="grid grid-cols-2 gap-8 pt-2 pb-10">
-                  <div className="border border-slate-300 rounded p-4 h-40 flex flex-col justify-between">
+                  <div className="border-2 border-slate-400 bg-slate-50/50 rounded-lg p-5 h-48 sm:h-52 flex flex-col justify-between">
                     <div>
                       <span className="font-bold font-sans text-xs uppercase block text-slate-900">
                         Pour la Société {employeeData.companyName}
@@ -304,12 +304,12 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
                         {employeeData.companyRepresentative} ({employeeData.representativeRole})
                       </span>
                     </div>
-                    <div className="text-[10px] text-slate-400 italic font-sans">
-                      Date et Signature autorisée :
+                    <div className="text-[10px] text-slate-400 italic font-sans border-t border-dashed border-slate-300 pt-2">
+                      Date, mention manuscrite et signature autorisée :
                     </div>
                   </div>
 
-                  <div className="border border-slate-300 rounded p-4 h-40 flex flex-col justify-between">
+                  <div className="border-2 border-slate-400 bg-slate-50/50 rounded-lg p-5 h-48 sm:h-52 flex flex-col justify-between">
                     <div>
                       <span className="font-bold font-sans text-xs uppercase block text-slate-900">
                         Le Salarié
@@ -318,8 +318,8 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
                         {employeeData.civility} {employeeData.firstName} {employeeData.lastName.toUpperCase()}
                       </span>
                     </div>
-                    <div className="text-[10px] text-slate-400 italic font-sans">
-                      Date et Signature :
+                    <div className="text-[10px] text-slate-400 italic font-sans border-t border-dashed border-slate-300 pt-2">
+                      Date, mention manuscrite et signature :
                     </div>
                   </div>
                 </div>

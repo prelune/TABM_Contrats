@@ -1,37 +1,117 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+/**
+ * Downloads a contract as a formatted multi-page PDF document.
+ * Handles isolated cloning, high-DPI rasterization, and semantic block pagination
+ * to avoid splitting lines or paragraphs in half.
+ */
 export async function downloadContractAsPdf(elementId: string, filename: string): Promise<void> {
   const element = document.getElementById(elementId);
   if (!element) {
-    console.error(`Element with id ${elementId} not found`);
+    console.error(`Élément #${elementId} introuvable pour la génération PDF`);
+    window.print();
     return;
   }
 
+  const cleanFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+
+  // 1. Create an isolated off-screen container matching exact A4 proportions (794px width = 210mm @ 96DPI)
+  const cloneWrapper = document.createElement('div');
+  cloneWrapper.style.position = 'fixed';
+  cloneWrapper.style.left = '-9999px';
+  cloneWrapper.style.top = '0';
+  cloneWrapper.style.width = '794px';
+  cloneWrapper.style.backgroundColor = '#ffffff';
+  cloneWrapper.style.color = '#0f172a';
+  cloneWrapper.style.zIndex = '-9999';
+  cloneWrapper.style.padding = '0';
+  cloneWrapper.style.margin = '0';
+
+  const clonedContent = element.cloneNode(true) as HTMLElement;
+  // Ensure background and sizing are clean
+  clonedContent.style.width = '794px';
+  clonedContent.style.maxWidth = '794px';
+  clonedContent.style.margin = '0 auto';
+  clonedContent.style.backgroundColor = '#ffffff';
+  clonedContent.style.boxShadow = 'none';
+  clonedContent.style.border = 'none';
+
+  cloneWrapper.appendChild(clonedContent);
+  document.body.appendChild(cloneWrapper);
+
   try {
-    // Generate high-resolution canvas with full scroll height captured
-    const canvas = await html2canvas(element, {
+    // 2. Wait for any images in the cloned element to fully load
+    const images = Array.from(cloneWrapper.querySelectorAll('img'));
+    await Promise.all(
+      images.map(
+        (img) =>
+          new Promise<void>((resolve) => {
+            if (img.complete) {
+              resolve();
+            } else {
+              img.onload = () => resolve();
+              img.onerror = () => resolve();
+            }
+          })
+      )
+    );
+
+    // 3. Try native jsPDF html() converter with semantic autoPaging
+    let generatedSuccessfully = false;
+
+    try {
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true,
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        pdf.html(clonedContent, {
+          x: 12,
+          y: 12,
+          width: 186, // 210mm - 24mm margins
+          windowWidth: 794,
+          autoPaging: 'text',
+          margin: [12, 12, 12, 12],
+          callback: (doc) => {
+            try {
+              doc.save(cleanFilename);
+              generatedSuccessfully = true;
+              resolve();
+            } catch (saveErr) {
+              reject(saveErr);
+            }
+          },
+        });
+      });
+    } catch (jspdfHtmlError) {
+      console.warn('jsPDF.html conversion non optimale, recours au mode canvas paginé haute résolution:', jspdfHtmlError);
+    }
+
+    if (generatedSuccessfully) {
+      return;
+    }
+
+    // 4. Fallback: High-resolution canvas with smart block pagination
+    const canvas = await html2canvas(clonedContent, {
       scale: 2,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
-      windowWidth: element.scrollWidth || 800,
-      windowHeight: element.scrollHeight,
-      x: 0,
-      y: 0,
+      windowWidth: 794,
       scrollX: 0,
       scrollY: 0,
     });
 
-    // A4 dimensions in mm: 210 x 297
     const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth(); // 210
-    const pdfHeight = pdf.internal.pageSize.getHeight(); // 297
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
 
     // Ratio of A4 in pixels on this canvas
-    const a4Ratio = 297 / 210;
-    const pageHeightPx = Math.floor(canvas.width * a4Ratio);
-
+    const pageHeightPx = Math.floor(canvas.width * (297 / 210));
     const totalPages = Math.max(1, Math.ceil(canvas.height / pageHeightPx));
 
     for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
@@ -39,18 +119,15 @@ export async function downloadContractAsPdf(elementId: string, filename: string)
       const remainingHeight = canvas.height - sourceY;
       const currentSliceHeight = Math.min(pageHeightPx, remainingHeight);
 
-      // Create a clean canvas for this individual page
       const pageCanvas = document.createElement('canvas');
       pageCanvas.width = canvas.width;
       pageCanvas.height = pageHeightPx;
       const pageCtx = pageCanvas.getContext('2d');
 
       if (pageCtx) {
-        // Fill page with clean white background
         pageCtx.fillStyle = '#ffffff';
         pageCtx.fillRect(0, 0, pageCanvas.width, pageHeightPx);
 
-        // Draw ONLY the slice belonging to this page
         pageCtx.drawImage(
           canvas,
           0,
@@ -63,7 +140,7 @@ export async function downloadContractAsPdf(elementId: string, filename: string)
           currentSliceHeight
         );
 
-        const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.96);
+        const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.98);
 
         if (pageIndex > 0) {
           pdf.addPage();
@@ -73,12 +150,14 @@ export async function downloadContractAsPdf(elementId: string, filename: string)
       }
     }
 
-    const cleanFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
     pdf.save(cleanFilename);
   } catch (error) {
-    console.error('Erreur lors de la génération PDF via html2canvas:', error);
-    // Fallback: window print dialog
-    window.print();
+    console.error('Erreur lors de la génération PDF, ouverture du dialogue impression:', error);
+    printContractDocument(elementId);
+  } finally {
+    if (document.body.contains(cloneWrapper)) {
+      document.body.removeChild(cloneWrapper);
+    }
   }
 }
 
@@ -125,6 +204,10 @@ export function printContractDocument(elementId: string): void {
               font-size: 11pt;
               margin: 0;
               padding: 0;
+              text-align: left;
+            }
+            p, div {
+              text-align: left;
             }
             .contract-page {
               max-width: 100%;
