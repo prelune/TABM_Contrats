@@ -17,7 +17,9 @@ import {
   Calculator,
   Euro,
   Edit3,
-  Scale
+  Scale,
+  Clock,
+  Calendar
 } from 'lucide-react';
 import { Establishment, AppSettings } from '../../types';
 
@@ -821,6 +823,235 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <p className="text-[11px] text-slate-500">
                 Ce bloc apparaîtra sous les signatures officielles dans le PDF et le fichier Word (.doc), et sera sauvegardé dans la colonne <strong>Mention_Pied_De_Page</strong> du fichier Excel.
               </p>
+            </div>
+          </div>
+
+          {/* SECTION 5: Périodes d'essai par établissement */}
+          <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
+            <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="p-1 rounded-md bg-purple-100 text-purple-700">
+                  <Clock className="w-3.5 h-3.5" />
+                </div>
+                <h2 className="text-xs font-extrabold text-slate-900 uppercase tracking-wide">
+                  5. Périodes d'Essai par Défaut de l'Établissement
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    trialPeriods: {
+                      cddUnder6Months: '1 jour par semaine de contrat',
+                      cddOver6Months: '1 mois',
+                      cdiCadre: '4 mois',
+                      cdiMaitrise: '3 mois',
+                      cdiConducteur: '2 mois',
+                      cdiEmploye: '2 mois',
+                      cdiOuvrier: '2 mois',
+                    },
+                  }));
+                }}
+                className="text-[11px] text-purple-700 hover:text-purple-900 font-semibold flex items-center gap-1 cursor-pointer transition"
+              >
+                <Sparkles className="w-3 h-3" />
+                Rétablir durées légales
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5">
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Configurez les durées de période d'essai qui s'appliqueront et se pré-rempliront automatiquement lors de la création d'un contrat rattaché à <strong>{formData.shortName || formData.name}</strong>. Lors de la rédaction, la durée sera calculée en temps réel tout en restant modifiable.
+              </p>
+
+              {/* Bloc CDD */}
+              <div className="p-3.5 bg-amber-50/50 rounded-xl border border-amber-200/70 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-amber-700" />
+                    Contrats à Durée Déterminée (CDD)
+                  </span>
+                  <span className="text-[10px] font-semibold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded">
+                    Calcul automatique selon dates début / fin
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      CDD de moins de 6 mois
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.trialPeriods?.cddUnder6Months ?? '1 jour par semaine de contrat'}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          trialPeriods: {
+                            ...formData.trialPeriods,
+                            cddUnder6Months: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="1 jour par semaine de contrat"
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-hidden font-medium text-slate-800"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Calculé en jours réels (ex : 4 semaines = 4 jours ouvrés).
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      CDD de plus de 6 mois
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.trialPeriods?.cddOver6Months ?? '1 mois'}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          trialPeriods: {
+                            ...formData.trialPeriods,
+                            cddOver6Months: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="1 mois"
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-hidden font-medium text-slate-800"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Durée forfaitaire légale pour les CDD &gt; 6 mois.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bloc CDI par statut */}
+              <div className="p-3.5 bg-blue-50/50 rounded-xl border border-blue-200/70 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-blue-700" />
+                    Contrats à Durée Indéterminée (CDI) selon le statut
+                  </span>
+                  <span className="text-[10px] font-semibold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded">
+                    Renouvelable selon accord de branche
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+                      <span>Cadre</span>
+                      <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-purple-100 text-purple-800 font-bold">CADRE</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.trialPeriods?.cdiCadre ?? '4 mois'}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          trialPeriods: {
+                            ...formData.trialPeriods,
+                            cdiCadre: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="4 mois"
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-hidden font-medium text-slate-800"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+                      <span>Maîtrise & Tech. (AMT)</span>
+                      <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-indigo-100 text-indigo-800 font-bold">AMT</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.trialPeriods?.cdiMaitrise ?? '3 mois'}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          trialPeriods: {
+                            ...formData.trialPeriods,
+                            cdiMaitrise: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="3 mois"
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-hidden font-medium text-slate-800"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+                      <span>Conducteur (CDT)</span>
+                      <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold">CDT</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.trialPeriods?.cdiConducteur ?? '2 mois'}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          trialPeriods: {
+                            ...formData.trialPeriods,
+                            cdiConducteur: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="2 mois"
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-hidden font-medium text-slate-800"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+                      <span>Employé (EMP)</span>
+                      <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-blue-100 text-blue-800 font-bold">EMP</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.trialPeriods?.cdiEmploye ?? '2 mois'}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          trialPeriods: {
+                            ...formData.trialPeriods,
+                            cdiEmploye: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="2 mois"
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-hidden font-medium text-slate-800"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+                      <span>Ouvrier (OUV)</span>
+                      <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-100 text-amber-800 font-bold">OUV</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.trialPeriods?.cdiOuvrier ?? '2 mois'}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          trialPeriods: {
+                            ...formData.trialPeriods,
+                            cdiOuvrier: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="2 mois"
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-hidden font-medium text-slate-800"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

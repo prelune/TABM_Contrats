@@ -40,10 +40,12 @@ import {
   EmployeeStatus, 
   ContractTemplate, 
   GeneratedContract,
-  ContractArticle
+  ContractArticle,
+  WorkTimeRegime,
+  WORK_TIME_REGIME_LABELS
 } from '../../types';
 import { CONTRACT_TYPE_LABELS, EMPLOYEE_STATUS_LABELS } from '../../data/defaultData';
-import { calculateSalary, formatEuro, stripArticlePrefix } from '../../utils/contractCompiler';
+import { calculateSalary, formatEuro, stripArticlePrefix, computeDefaultTrialPeriod } from '../../utils/contractCompiler';
 import { ContractPreviewModal } from './ContractPreviewModal';
 
 interface ContractBlockConfig {
@@ -134,6 +136,14 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     (e) => e.id === (initialEmployeeData?.establishmentId || db.settings.defaultEstablishmentId)
   ) || db.establishments[0];
 
+  const initialTrial = computeDefaultTrialPeriod({
+    contractType: initialEmployeeData?.contractType || 'cdi',
+    status: initialEmployeeData?.status || 'conducteur',
+    startDate: initialEmployeeData?.startDate || new Date().toISOString().slice(0, 10),
+    endDate: initialEmployeeData?.endDate,
+    establishment: initialEst,
+  });
+
   // Form State: Salarié & Poste
   const [formData, setFormData] = useState<ContractEmployeeData>(() => ({
     civility: 'M.',
@@ -163,13 +173,14 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
 
     contractType: 'cdi',
     status: 'conducteur',
+    workTimeRegime: initialEmployeeData?.workTimeRegime || 'temps_plein',
     jobTitle: '',
     coefficient: 140,
     salaryCalculationMode: initialEst?.salaryCalculationMode || 'point_value',
     pointValue: initialEst?.pointValue ?? db.settings.pointValue,
     monthlyGrossSalary: 0,
     hourlyRate: 0,
-    weeklyHours: 35,
+    weeklyHours: initialEmployeeData?.weeklyHours !== undefined ? initialEmployeeData.weeklyHours : 35,
     monthlyHours: 151.67,
     additionalBonus: 0,
     bonusDetails: '',
@@ -179,18 +190,59 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     cddReason: 'Surcroît temporaire d’activité de transport',
     replacedEmployeeName: '',
     replacedEmployeeRole: '',
-    trialPeriod: '2 mois de travail effectif',
-    trialPeriodRenewal: 'renouvelable une fois pour une durée maximale de 2 mois',
-    workplaceDepot: 'Dépôt Central Vaise - Lyon',
+    trialPeriod: initialEmployeeData?.trialPeriod || initialTrial.trialPeriod,
+    trialPeriodRenewal: initialEmployeeData?.trialPeriodRenewal || initialTrial.trialPeriodRenewal,
+    workplaceDepot: initialEmployeeData?.workplaceDepot || initialEst?.name || 'Dépôt principal',
     mobilityZone: 'Ensemble des lignes et dessertes du réseau TABM',
     requiredLicenses: 'Permis D en cours de validité, FIMO Voyageurs et Carte conducteur',
     ...initialEmployeeData,
   }));
 
+  // Track if user explicitly customized the trial period string manually
+  const [hasManualTrialPeriod, setHasManualTrialPeriod] = useState<boolean>(Boolean(initialEmployeeData?.trialPeriod));
+
   // Active establishment helper
   const currentEst = db.establishments.find((e) => e.id === formData.establishmentId) || db.establishments[0];
   const isEstPointMode = (formData.salaryCalculationMode || currentEst?.salaryCalculationMode || 'point_value') === 'point_value';
   const effectivePointValue = formData.pointValue || currentEst?.pointValue || db.settings.pointValue || 10.45;
+
+  // Real-time calculated trial period based on current contract type, status, dates & establishment
+  const calculatedTrial = computeDefaultTrialPeriod({
+    contractType: formData.contractType,
+    status: formData.status,
+    startDate: formData.startDate,
+    endDate: formData.endDate,
+    establishment: currentEst,
+  });
+
+  // Automatically update trial period if user hasn't manually customized it
+  useEffect(() => {
+    if (!hasManualTrialPeriod) {
+      setFormData((prev) => ({
+        ...prev,
+        trialPeriod: calculatedTrial.trialPeriod,
+        trialPeriodRenewal: calculatedTrial.trialPeriodRenewal,
+      }));
+    }
+  }, [
+    formData.contractType,
+    formData.status,
+    formData.startDate,
+    formData.endDate,
+    formData.establishmentId,
+    hasManualTrialPeriod,
+    calculatedTrial.trialPeriod,
+    calculatedTrial.trialPeriodRenewal,
+  ]);
+
+  const applyCalculatedTrialPeriod = () => {
+    setHasManualTrialPeriod(false);
+    setFormData((prev) => ({
+      ...prev,
+      trialPeriod: calculatedTrial.trialPeriod,
+      trialPeriodRenewal: calculatedTrial.trialPeriodRenewal,
+    }));
+  };
 
   // Handle switching establishment of affiliation
   const handleEstablishmentSelect = (estId: string) => {
@@ -210,6 +262,15 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
         nextHourly = calc.hourlyRate;
       }
 
+      // Check if current workplaceDepot was default or previous establishment name
+      const prevEst = db.establishments.find((e) => e.id === prev.establishmentId);
+      const isDefaultDepot =
+        !prev.workplaceDepot ||
+        prev.workplaceDepot === prevEst?.name ||
+        prev.workplaceDepot === 'Dépôt Central Vaise - Lyon' ||
+        prev.workplaceDepot === 'Dépôt principal';
+      const nextDepot = isDefaultDepot ? est.name : prev.workplaceDepot;
+
       return {
         ...prev,
         establishmentId: est.id,
@@ -228,6 +289,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
         pointValue: estPoint,
         monthlyGrossSalary: nextMonthly,
         hourlyRate: nextHourly,
+        workplaceDepot: nextDepot,
       };
     });
 
@@ -321,7 +383,8 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
       }));
     } else {
       // In manual / company grid mode: update hourly rate based on manual monthly salary and hours
-      const monthlyHours = (formData.weeklyHours * 52) / 12;
+      const effectiveHours = formData.weeklyHours || 35;
+      const monthlyHours = (effectiveHours * 52) / 12;
       const hourlyRate = monthlyHours > 0 ? (formData.monthlyGrossSalary + (formData.additionalBonus || 0)) / monthlyHours : 0;
       setFormData((prev) => ({
         ...prev,
@@ -331,7 +394,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     }
   }, [formData.coefficient, effectivePointValue, formData.additionalBonus, formData.weeklyHours, isEstPointMode]);
 
-  // Auto-suggest articles when contract type, status or establishment changes (unless applying a template / duplicated)
+  // Auto-suggest articles when contract type, status, work time regime or establishment changes (unless applying a template / duplicated)
   useEffect(() => {
     if (isCustomSelectionRef.current) {
       isCustomSelectionRef.current = false;
@@ -342,6 +405,9 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
       (art) =>
         art.validContractTypes.includes(formData.contractType) &&
         art.validStatuses.includes(formData.status) &&
+        (!art.workTimeTarget ||
+          art.workTimeTarget === 'les_deux' ||
+          art.workTimeTarget === formData.workTimeRegime) &&
         (!art.validEstablishmentIds ||
           art.validEstablishmentIds.length === 0 ||
           !formData.establishmentId ||
@@ -351,7 +417,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
 
     const currentBlock = getBlockIdForContractType(formData.contractType);
     setExpandedBlockIds([currentBlock, 'block-communs']);
-  }, [formData.contractType, formData.status, formData.establishmentId, db.articles]);
+  }, [formData.contractType, formData.status, formData.workTimeRegime, formData.establishmentId, db.articles]);
 
   const toggleBlockExpanded = (blockId: string) => {
     setExpandedBlockIds((prev) =>
@@ -394,6 +460,10 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
           if (!art.validEstablishmentIds.includes(formData.establishmentId)) {
             return false;
           }
+        }
+        // Work time regime compatibility filter (TC / TP / les deux)
+        if (art.workTimeTarget && art.workTimeTarget !== 'les_deux' && art.workTimeTarget !== formData.workTimeRegime) {
+          return false;
         }
         if (block.filterFn(art)) return true;
         if (block.typeKey && art.validContractTypes.includes(block.typeKey) && art.validContractTypes.length === 1) {
@@ -1132,7 +1202,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                           value={formData.monthlyGrossSalary || ''}
                           onChange={(e) => {
                             const val = parseFloat(e.target.value) || 0;
-                            const monthlyHours = (formData.weeklyHours * 52) / 12;
+                            const monthlyHours = ((formData.weeklyHours || 35) * 52) / 12;
                             const rate = monthlyHours > 0 ? (val + (formData.additionalBonus || 0)) / monthlyHours : 0;
                             setFormData({
                               ...formData,
@@ -1156,7 +1226,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                           value={formData.additionalBonus || ''}
                           onChange={(e) => {
                             const bonus = parseFloat(e.target.value) || 0;
-                            const monthlyHours = (formData.weeklyHours * 52) / 12;
+                            const monthlyHours = ((formData.weeklyHours || 35) * 52) / 12;
                             const rate = monthlyHours > 0 ? (formData.monthlyGrossSalary + bonus) / monthlyHours : 0;
                             setFormData({
                               ...formData,
@@ -1271,6 +1341,93 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                 </div>
               )}
 
+              {/* Régime de travail (TC / TP) & Durée du travail */}
+              <div className="p-4 bg-slate-50/90 rounded-xl border border-slate-200 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                  <label className="block text-[11px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-blue-600" />
+                    Régime de Travail (Temps Complet ou Partiel) *
+                  </label>
+                  <span className="text-[10.5px] text-slate-500">
+                    Adapte les clauses et le titre du contrat
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        workTimeRegime: 'temps_plein',
+                        weeklyHours: prev.weeklyHours || 35,
+                      }));
+                    }}
+                    className={`p-3 rounded-lg border text-left transition flex items-center justify-between ${
+                      formData.workTimeRegime === 'temps_plein'
+                        ? 'bg-blue-50 border-blue-500 text-blue-950 ring-2 ring-blue-500/20 shadow-xs'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2.5">
+                      <input
+                        type="radio"
+                        name="contractWorkTimeRegimeChoice"
+                        checked={formData.workTimeRegime === 'temps_plein'}
+                        onChange={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            workTimeRegime: 'temps_plein',
+                            weeklyHours: prev.weeklyHours || 35,
+                          }));
+                        }}
+                        className="text-blue-600 focus:ring-blue-500"
+                      />
+                      <div>
+                        <div className="text-xs font-bold text-slate-900">Temps Complet (TC)</div>
+                        <div className="text-[10.5px] text-slate-500">Durée de référence (35h hebdo)</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-blue-100 text-blue-800">TC</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        workTimeRegime: 'temps_partiel',
+                      }));
+                    }}
+                    className={`p-3 rounded-lg border text-left transition flex items-center justify-between ${
+                      formData.workTimeRegime === 'temps_partiel'
+                        ? 'bg-purple-50 border-purple-500 text-purple-950 ring-2 ring-purple-500/20 shadow-xs'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2.5">
+                      <input
+                        type="radio"
+                        name="contractWorkTimeRegimeChoice"
+                        checked={formData.workTimeRegime === 'temps_partiel'}
+                        onChange={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            workTimeRegime: 'temps_partiel',
+                          }));
+                        }}
+                        className="text-purple-600 focus:ring-purple-500"
+                      />
+                      <div>
+                        <div className="text-xs font-bold text-slate-900">Temps Partiel (TP)</div>
+                        <div className="text-[10.5px] text-slate-500">Durée inférieure au temps plein</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-purple-100 text-purple-800">TP</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Dates & Conditions */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
@@ -1286,43 +1443,92 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Heures hebdo
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                      Heures hebdo
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-semibold">(Facultatif)</span>
+                  </div>
                   <input
                     type="number"
-                    value={formData.weeklyHours}
-                    onChange={(e) => setFormData({ ...formData, weeklyHours: Number(e.target.value) })}
+                    min="1"
+                    step="0.5"
+                    value={formData.weeklyHours !== undefined && formData.weeklyHours !== null ? formData.weeklyHours : ''}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? undefined : Number(e.target.value);
+                      const mHours = val !== undefined ? Math.round((val * 52 / 12) * 100) / 100 : undefined;
+                      setFormData({
+                        ...formData,
+                        weeklyHours: val,
+                        monthlyHours: mHours,
+                      });
+                    }}
+                    placeholder={formData.workTimeRegime === 'temps_partiel' ? 'Facultatif (ex: 20, 24, 28...)' : 'Facultatif (défaut : 35)'}
                     className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Période d'essai
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                      Période d'essai
+                    </label>
+                    <button
+                      type="button"
+                      onClick={applyCalculatedTrialPeriod}
+                      className="text-[10px] text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 cursor-pointer"
+                      title="Recalculer selon le statut, type de contrat et établissement"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      Recalculer
+                    </button>
+                  </div>
                   <input
                     type="text"
                     value={formData.trialPeriod}
-                    onChange={(e) => setFormData({ ...formData, trialPeriod: e.target.value })}
-                    placeholder="2 mois de travail effectif"
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                    onChange={(e) => {
+                      setHasManualTrialPeriod(true);
+                      setFormData({ ...formData, trialPeriod: e.target.value });
+                    }}
+                    placeholder="ex: 2 mois"
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden font-medium text-slate-800"
                   />
+                  <div className="mt-1 flex items-center gap-1 text-[10px] text-slate-500">
+                    <Info className="w-3 h-3 text-slate-400 shrink-0" />
+                    <span className="truncate" title={calculatedTrial.explanation}>
+                      {calculatedTrial.explanation}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               {/* Lieu de travail & Transport */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Dépôt de rattachement
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                      Dépôt de rattachement
+                    </label>
+                    {currentEst && formData.workplaceDepot !== currentEst.name && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, workplaceDepot: currentEst.name })}
+                        className="text-[10px] text-blue-600 hover:text-blue-800 font-semibold cursor-pointer"
+                        title={`Réinitialiser sur "${currentEst.shortName || currentEst.name}"`}
+                      >
+                        Nom établissement
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="text"
                     value={formData.workplaceDepot}
                     onChange={(e) => setFormData({ ...formData, workplaceDepot: e.target.value })}
-                    placeholder="Dépôt Lyon Vaise"
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                    placeholder={currentEst?.name || "Dépôt principal"}
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden font-medium text-slate-800"
                   />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Par défaut le nom de l'établissement ({currentEst?.shortName || currentEst?.name}). Modifiable si nécessaire.
+                  </p>
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
@@ -1574,8 +1780,18 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                                     </span>
                                   </div>
 
-                                  {/* Badges: Obligatoire */}
+                                  {/* Badges: Work time & Obligatoire */}
                                   <div className="flex items-center space-x-1.5 shrink-0">
+                                    {art.workTimeTarget === 'temps_plein' && (
+                                      <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                                        TC
+                                      </span>
+                                    )}
+                                    {art.workTimeTarget === 'temps_partiel' && (
+                                      <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
+                                        TP
+                                      </span>
+                                    )}
                                     {(art.isMandatory || (formData.establishmentId && art.mandatoryEstablishmentIds?.includes(formData.establishmentId))) && (
                                       <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
                                         Obligatoire

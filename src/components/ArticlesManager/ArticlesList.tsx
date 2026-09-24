@@ -11,9 +11,10 @@ import {
   HelpCircle,
   FileText,
   Filter,
-  Building2
+  Building2,
+  Clock
 } from 'lucide-react';
-import { ContractArticle, ContractType, EmployeeStatus, Establishment } from '../../types';
+import { ContractArticle, ContractType, EmployeeStatus, Establishment, ArticleWorkTimeTarget } from '../../types';
 import { CONTRACT_TYPE_LABELS, EMPLOYEE_STATUS_LABELS } from '../../data/defaultData';
 
 interface ArticlesListProps {
@@ -53,6 +54,7 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterContractType, setFilterContractType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterWorkTime, setFilterWorkTime] = useState<string>('all');
   const [filterEstablishment, setFilterEstablishment] = useState<string>('all');
 
   // Modal State
@@ -67,6 +69,7 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
     validStatuses: EmployeeStatus[];
     validEstablishmentIds: string[];
     mandatoryEstablishmentIds: string[];
+    workTimeTarget: ArticleWorkTimeTarget;
     isMandatory: boolean;
     order: number;
   }>({
@@ -78,6 +81,7 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
     validStatuses: ['conducteur', 'employé', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
     validEstablishmentIds: [],
     mandatoryEstablishmentIds: [],
+    workTimeTarget: 'les_deux',
     isMandatory: false,
     order: 1,
   });
@@ -93,6 +97,7 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
       validStatuses: ['conducteur', 'employé', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
       validEstablishmentIds: establishments.map(e => e.id),
       mandatoryEstablishmentIds: [],
+      workTimeTarget: 'les_deux',
       isMandatory: false,
       order: articles.length + 1,
     });
@@ -110,6 +115,7 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
       validStatuses: [...article.validStatuses],
       validEstablishmentIds: article.validEstablishmentIds ? [...article.validEstablishmentIds] : establishments.map(e => e.id),
       mandatoryEstablishmentIds: article.mandatoryEstablishmentIds ? [...article.mandatoryEstablishmentIds] : [],
+      workTimeTarget: article.workTimeTarget || 'les_deux',
       isMandatory: !!article.isMandatory,
       order: article.order,
     });
@@ -202,6 +208,7 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
         validStatuses: formData.validStatuses,
         validEstablishmentIds: formData.validEstablishmentIds,
         mandatoryEstablishmentIds: formData.mandatoryEstablishmentIds,
+        workTimeTarget: formData.workTimeTarget,
         isMandatory: formData.isMandatory,
         order: Number(formData.order),
       });
@@ -215,6 +222,7 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
         validStatuses: formData.validStatuses,
         validEstablishmentIds: formData.validEstablishmentIds,
         mandatoryEstablishmentIds: formData.mandatoryEstablishmentIds,
+        workTimeTarget: formData.workTimeTarget,
         isMandatory: formData.isMandatory,
         order: Number(formData.order),
       });
@@ -235,13 +243,19 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
     const matchesStatus =
       filterStatus === 'all' || art.validStatuses.includes(filterStatus as EmployeeStatus);
 
+    const artWorkTime = art.workTimeTarget || 'les_deux';
+    const matchesWorkTime =
+      filterWorkTime === 'all' ||
+      artWorkTime === filterWorkTime ||
+      artWorkTime === 'les_deux';
+
     const matchesEstablishment =
       filterEstablishment === 'all' ||
       !art.validEstablishmentIds ||
       art.validEstablishmentIds.length === 0 ||
       art.validEstablishmentIds.includes(filterEstablishment);
 
-    return matchesSearch && matchesType && matchesStatus && matchesEstablishment;
+    return matchesSearch && matchesType && matchesStatus && matchesWorkTime && matchesEstablishment;
   });
 
   return (
@@ -320,6 +334,20 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
                   {v}
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-xs text-slate-600">
+            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <span>Temps :</span>
+            <select
+              value={filterWorkTime}
+              onChange={(e) => setFilterWorkTime(e.target.value)}
+              className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 focus:outline-hidden"
+            >
+              <option value="all">Tous régimes (TC & TP)</option>
+              <option value="temps_plein">Temps Complet (TC)</option>
+              <option value="temps_partiel">Temps Partiel (TP)</option>
             </select>
           </div>
 
@@ -432,6 +460,28 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
                     </span>
                   ))}
                 </div>
+              </div>
+
+              <div>
+                <span className="text-slate-400 font-medium block text-[10px] uppercase mb-1">
+                  Régime de travail :
+                </span>
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                    art.workTimeTarget === 'temps_plein'
+                      ? 'bg-amber-50 text-amber-800 border-amber-200'
+                      : art.workTimeTarget === 'temps_partiel'
+                      ? 'bg-purple-50 text-purple-800 border-purple-200'
+                      : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  }`}
+                >
+                  <Clock className="w-3 h-3 mr-1" />
+                  {art.workTimeTarget === 'temps_plein'
+                    ? 'Temps Complet (TC) uniquement'
+                    : art.workTimeTarget === 'temps_partiel'
+                    ? 'Temps Partiel (TP) uniquement'
+                    : 'TC & TP (Les deux)'}
+                </span>
               </div>
 
               {establishments.length > 0 && art.validEstablishmentIds && art.validEstablishmentIds.length > 0 && (
@@ -794,6 +844,90 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
                   </div>
                 </div>
 
+                {/* Régime de temps de travail (TC, TP ou les deux) */}
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                  <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">
+                    Régime de temps de travail applicable *
+                  </label>
+                  <p className="text-[11px] text-slate-500 mb-3">
+                    Indiquez si cet article concerne le Temps Complet (TC), le Temps Partiel (TP) ou s'applique aux deux régimes :
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, workTimeTarget: 'les_deux' })}
+                      className={`p-3 rounded-lg border text-left transition flex flex-col justify-between ${
+                        formData.workTimeTarget === 'les_deux'
+                          ? 'bg-blue-50 border-blue-500 text-blue-950 ring-2 ring-blue-500/20 shadow-xs'
+                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2 mb-1">
+                        <input
+                          type="radio"
+                          name="workTimeTarget"
+                          checked={formData.workTimeTarget === 'les_deux'}
+                          onChange={() => setFormData({ ...formData, workTimeTarget: 'les_deux' })}
+                          className="text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-xs font-bold">Les deux (TC & TP)</span>
+                      </div>
+                      <p className="text-[10.5px] text-slate-500 leading-tight">
+                        Clause commune proposée pour les temps complets et les temps partiels
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, workTimeTarget: 'temps_plein' })}
+                      className={`p-3 rounded-lg border text-left transition flex flex-col justify-between ${
+                        formData.workTimeTarget === 'temps_plein'
+                          ? 'bg-amber-50 border-amber-500 text-amber-950 ring-2 ring-amber-500/20 shadow-xs'
+                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2 mb-1">
+                        <input
+                          type="radio"
+                          name="workTimeTarget"
+                          checked={formData.workTimeTarget === 'temps_plein'}
+                          onChange={() => setFormData({ ...formData, workTimeTarget: 'temps_plein' })}
+                          className="text-amber-600 focus:ring-amber-500"
+                        />
+                        <span className="text-xs font-bold text-amber-900">Temps Complet (TC)</span>
+                      </div>
+                      <p className="text-[10.5px] text-slate-500 leading-tight">
+                        Clause spécifique réservée uniquement aux contrats à temps complet
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, workTimeTarget: 'temps_partiel' })}
+                      className={`p-3 rounded-lg border text-left transition flex flex-col justify-between ${
+                        formData.workTimeTarget === 'temps_partiel'
+                          ? 'bg-purple-50 border-purple-500 text-purple-950 ring-2 ring-purple-500/20 shadow-xs'
+                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2 mb-1">
+                        <input
+                          type="radio"
+                          name="workTimeTarget"
+                          checked={formData.workTimeTarget === 'temps_partiel'}
+                          onChange={() => setFormData({ ...formData, workTimeTarget: 'temps_partiel' })}
+                          className="text-purple-600 focus:ring-purple-500"
+                        />
+                        <span className="text-xs font-bold text-purple-900">Temps Partiel (TP)</span>
+                      </div>
+                      <p className="text-[10.5px] text-slate-500 leading-tight">
+                        Clause spécifique réservée uniquement aux contrats à temps partiel
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Text Content */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -820,6 +954,22 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
                   <p className="text-[11px] text-slate-500 mt-1">
                     Les balises écrites sous la forme <code className="text-blue-600 font-bold">{'{{balise}}'}</code> seront automatiquement remplacées par les données réelles du salarié lors de la génération du contrat.
                   </p>
+
+                  <div className="mt-2 p-2.5 bg-pink-50/70 border border-pink-200 rounded-lg text-[11px] text-pink-950 space-y-1">
+                    <div className="font-semibold text-pink-900 flex items-center gap-1.5">
+                      <span>🌸</span>
+                      <span>Accord au féminin automatique (lorsque civilité = Mme) :</span>
+                    </div>
+                    <p className="text-slate-600 leading-tight">
+                      • <strong>Terminaison en "e" :</strong> écrivez <code className="bg-white border border-pink-200 px-1 py-0.5 rounded font-mono font-bold text-pink-800">{'{{e}}'}</code> (ex : <em>engagé{'{{e}}'}</em> ou <em>salarié{'{{e}}'}</em>).
+                    </p>
+                    <p className="text-slate-600 leading-tight">
+                      • <strong>Choix de mot complet :</strong> écrivez <code className="bg-white border border-pink-200 px-1 py-0.5 rounded font-mono font-bold text-pink-800">{'{{accord:masculin|féminin}}'}</code> (ex : <em>{'{{accord:le salarié|la salariée}}'}</em>, <em>{'{{accord:Il|Elle}}'}</em>).
+                    </p>
+                    <p className="text-slate-600 leading-tight">
+                      • <strong>Raccourcis prêts à l'emploi :</strong> <code className="bg-white px-1 py-0.5 rounded font-mono text-slate-800">{'{{le_la}}'}</code>, <code className="bg-white px-1 py-0.5 rounded font-mono text-slate-800">{'{{un_une}}'}</code>, <code className="bg-white px-1 py-0.5 rounded font-mono text-slate-800">{'{{il_elle}}'}</code>, <code className="bg-white px-1 py-0.5 rounded font-mono text-slate-800">{'{{ce_cette}}'}</code>, <code className="bg-white px-1 py-0.5 rounded font-mono text-slate-800">{'{{salarie_e}}'}</code>.
+                    </p>
+                  </div>
                 </div>
               </div>
 

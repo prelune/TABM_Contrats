@@ -228,7 +228,7 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
                   className="text-xs text-slate-600 font-sans mt-1"
                   style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: '12px', color: '#475569', marginTop: '4px', marginBottom: 0 }}
                 >
-                  Statut : {employeeData.status.toUpperCase()} • Métier : {employeeData.jobTitle}
+                  Statut : {employeeData.status.toUpperCase()} • Métier : {employeeData.jobTitle} • {employeeData.workTimeRegime === 'temps_partiel' ? 'Temps Partiel (TP)' : 'Temps Complet (TC)'}{employeeData.weeklyHours ? ` (${employeeData.weeklyHours}h/sem)` : ''}
                 </p>
               </div>
 

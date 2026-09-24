@@ -79,6 +79,7 @@ export function createSampleDatabase(): AppDatabase {
 
           contractType: 'cdi',
           status: 'conducteur',
+          workTimeRegime: 'temps_plein',
           jobTitle: 'Conducteur(trice) Receveur Lignes Régulières',
           coefficient: 140,
           pointValue: 10.92,
@@ -165,6 +166,7 @@ export function createSampleDatabase(): AppDatabase {
 
           contractType: 'cdi',
           status: 'maitrise',
+          workTimeRegime: 'temps_plein',
           jobTitle: 'Dispatcheur / Régulateur de Réseau',
           coefficient: 160,
           pointValue: 10.92,
@@ -265,6 +267,13 @@ export function exportDatabaseToExcel(db: AppDatabase, filenamePrefix = 'TABM_Co
     Valeur_Point: Number(etab.pointValue ?? db.settings.pointValue ?? 10.45),
     Logo_URL: etab.logoUrl || '',
     Mention_Pied_De_Page: etab.footerText || '',
+    Periode_Essai_CDD_Moins_6M: etab.trialPeriods?.cddUnder6Months || '',
+    Periode_Essai_CDD_Plus_6M: etab.trialPeriods?.cddOver6Months || '',
+    Periode_Essai_CDI_Cadre: etab.trialPeriods?.cdiCadre || '',
+    Periode_Essai_CDI_Maitrise: etab.trialPeriods?.cdiMaitrise || '',
+    Periode_Essai_CDI_Conducteur: etab.trialPeriods?.cdiConducteur || '',
+    Periode_Essai_CDI_Employe: etab.trialPeriods?.cdiEmploye || '',
+    Periode_Essai_CDI_Ouvrier: etab.trialPeriods?.cdiOuvrier || '',
   }));
   const wsEstablishments = XLSX.utils.json_to_sheet(establishmentsRows);
   XLSX.utils.book_append_sheet(wb, wsEstablishments, 'Etablissements');
@@ -309,6 +318,7 @@ export function exportDatabaseToExcel(db: AppDatabase, filenamePrefix = 'TABM_Co
       : (art.isMandatory ? 'TOUS' : 'AUCUN'),
     Types_Contrats_Valides: art.validContractTypes.join(', '),
     Statuts_Valides: art.validStatuses.join(', '),
+    Regime_Temps_Travail: art.workTimeTarget || 'les_deux',
     Contenu_Article: art.content,
   }));
   const wsArticles = XLSX.utils.json_to_sheet(articlesRows);
@@ -355,13 +365,14 @@ export function exportDatabaseToExcel(db: AppDatabase, filenamePrefix = 'TABM_Co
       // Contrat
       Type_Contrat: c.employeeData.contractType,
       Statut_Salarie: c.employeeData.status,
+      Regime_Temps_Travail: c.employeeData.workTimeRegime === 'temps_partiel' ? 'TEMPS_PARTIEL' : 'TEMPS_PLEIN',
       Metier: c.employeeData.jobTitle,
       Coefficient: c.employeeData.coefficient,
       Mode_Calcul_Salaire: c.employeeData.salaryCalculationMode === 'manual' ? 'MANUEL' : 'VALEUR_POINT',
       Valeur_Point: c.employeeData.pointValue,
       Salaire_Mensuel_Brut: c.employeeData.monthlyGrossSalary,
       Taux_Horaire: c.employeeData.hourlyRate,
-      Heures_Hebdo: c.employeeData.weeklyHours,
+      Heures_Hebdo: c.employeeData.weeklyHours !== undefined ? c.employeeData.weeklyHours : '',
       Logo_Etablissement: c.employeeData.establishmentLogoUrl ? 'OUI' : 'NON',
       Pied_De_Page_Etablissement: c.employeeData.establishmentFooterText || '',
       Date_Debut: c.employeeData.startDate,
@@ -484,6 +495,15 @@ export function parseExcelToDatabase(dataBuffer: ArrayBuffer): AppDatabase {
         pointValue: r.Valeur_Point !== undefined && r.Valeur_Point !== '' ? Number(r.Valeur_Point) : (newDb.settings.pointValue || 10.45),
         logoUrl: String(r.Logo_URL || r.logoUrl || ''),
         footerText: String(r.Mention_Pied_De_Page || r.footerText || ''),
+        trialPeriods: {
+          cddUnder6Months: String(r.Periode_Essai_CDD_Moins_6M || r.cddUnder6Months || '1 jour par semaine de contrat'),
+          cddOver6Months: String(r.Periode_Essai_CDD_Plus_6M || r.cddOver6Months || '1 mois'),
+          cdiCadre: String(r.Periode_Essai_CDI_Cadre || r.cdiCadre || '4 mois'),
+          cdiMaitrise: String(r.Periode_Essai_CDI_Maitrise || r.cdiMaitrise || '3 mois'),
+          cdiConducteur: String(r.Periode_Essai_CDI_Conducteur || r.cdiConducteur || '2 mois'),
+          cdiEmploye: String(r.Periode_Essai_CDI_Employe || r.cdiEmploye || '2 mois'),
+          cdiOuvrier: String(r.Periode_Essai_CDI_Ouvrier || r.cdiOuvrier || '2 mois'),
+        },
       }));
     }
   }
@@ -549,6 +569,14 @@ export function parseExcelToDatabase(dataBuffer: ArrayBuffer): AppDatabase {
         mandatoryEstablishmentIds = rawMandatory.split(',').map((s) => s.trim()).filter(Boolean);
       }
 
+      const rawWorkTime = String(r.Regime_Temps_Travail || r.workTimeTarget || '').toLowerCase();
+      let workTimeTarget: any = 'les_deux';
+      if (rawWorkTime.includes('partiel') || rawWorkTime === 'tp') {
+        workTimeTarget = 'temps_partiel';
+      } else if (rawWorkTime.includes('plein') || rawWorkTime.includes('complet') || rawWorkTime === 'tc') {
+        workTimeTarget = 'temps_plein';
+      }
+
       return {
         id: String(r.ID || `art-${idx + 1}`),
         code: String(r.Code || `ART-${idx + 1}`),
@@ -558,6 +586,7 @@ export function parseExcelToDatabase(dataBuffer: ArrayBuffer): AppDatabase {
         isMandatory: isMandatoryGlobal,
         validEstablishmentIds,
         mandatoryEstablishmentIds,
+        workTimeTarget,
         validContractTypes: validContractTypes.length ? validContractTypes : ['cdi', 'cdd'],
         validStatuses: validStatuses.length ? validStatuses : ['conducteur'],
         content: String(r.Contenu_Article || r.content || ''),
@@ -665,13 +694,16 @@ export function parseExcelToDatabase(dataBuffer: ArrayBuffer): AppDatabase {
 
           contractType: (String(r.Type_Contrat || 'cdi').toLowerCase() as any),
           status: (String(r.Statut_Salarie || 'conducteur').toLowerCase() as any),
+          workTimeRegime: String(r.Regime_Temps_Travail || '').toLowerCase().includes('partiel') || String(r.Regime_Temps_Travail || '').toUpperCase() === 'TP'
+            ? 'temps_partiel'
+            : 'temps_plein',
           jobTitle: String(r.Metier || ''),
           coefficient: Number(r.Coefficient || 140),
           pointValue: Number(r.Valeur_Point || matchedEtab?.pointValue || newDb.settings.pointValue),
           monthlyGrossSalary: Number(r.Salaire_Mensuel_Brut || 0),
           hourlyRate: Number(r.Taux_Horaire || 0),
-          weeklyHours: Number(r.Heures_Hebdo || 35),
-          monthlyHours: Number((Number(r.Heures_Hebdo || 35) * 52 / 12).toFixed(2)),
+          weeklyHours: r.Heures_Hebdo !== undefined && r.Heures_Hebdo !== '' ? Number(r.Heures_Hebdo) : undefined,
+          monthlyHours: r.Heures_Hebdo !== undefined && r.Heures_Hebdo !== '' ? Number((Number(r.Heures_Hebdo) * 52 / 12).toFixed(2)) : undefined,
           startDate: String(r.Date_Debut || ''),
           endDate: r.Date_Fin ? String(r.Date_Fin) : undefined,
           cddReason: r.Motif_Recours_CDD ? String(r.Motif_Recours_CDD) : undefined,

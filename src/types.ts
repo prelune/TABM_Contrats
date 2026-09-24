@@ -13,6 +13,20 @@ export type EmployeeStatus =
   | 'haute_maitrise' 
   | 'cadre';
 
+export type WorkTimeRegime = 'temps_plein' | 'temps_partiel';
+
+export type ArticleWorkTimeTarget = 'les_deux' | 'temps_plein' | 'temps_partiel';
+
+export interface EstablishmentTrialPeriods {
+  cddUnder6Months?: string; // Par défaut: "1 jour par semaine de contrat"
+  cddOver6Months?: string;  // Par défaut: "1 mois"
+  cdiCadre?: string;        // Par défaut: "4 mois"
+  cdiMaitrise?: string;     // Par défaut: "3 mois" (AMT)
+  cdiConducteur?: string;   // Par défaut: "2 mois" (CDT)
+  cdiEmploye?: string;      // Par défaut: "2 mois" (EMP)
+  cdiOuvrier?: string;      // Par défaut: "2 mois" (OUV)
+}
+
 export interface Establishment {
   id: string; // e.g. "etab-1", "etab-2", "etab-3"
   code: string; // e.g. "ETAB-LYON-URBAIN", "ETAB-RHONE-INTER", "ETAB-TOURISME"
@@ -31,6 +45,7 @@ export interface Establishment {
   footerText?: string; // Mention personnalisée de pied de page
   salaryCalculationMode?: 'point_value' | 'manual'; // 'point_value' (Calcul par valeur du point) ou 'manual' (Grille propre / Saisie manuelle)
   pointValue?: number; // Valeur du point spécifique à l'établissement (ex: 10.45 €)
+  trialPeriods?: EstablishmentTrialPeriods; // Durées des périodes d'essai personnalisables par établissement
 }
 
 export interface WorkflowStepConfig {
@@ -59,6 +74,7 @@ export interface ContractArticle {
   validContractTypes: ContractType[];
   validStatuses: EmployeeStatus[];
   validEstablishmentIds?: string[]; // IDs des établissements rattachés (ex: ['etab-1', 'etab-2', 'etab-3']). Si vide => tous
+  workTimeTarget?: ArticleWorkTimeTarget; // 'les_deux' (par défaut, TC & TP), 'temps_plein' (TC uniquement) ou 'temps_partiel' (TP uniquement)
   isMandatory?: boolean; // Légalement obligatoire globalement
   mandatoryEstablishmentIds?: string[]; // IDs des établissements pour lesquels cet article est obligatoire
   order: number;
@@ -106,14 +122,15 @@ export interface ContractEmployeeData {
   // Poste & Contrat
   contractType: ContractType;
   status: EmployeeStatus;
+  workTimeRegime: WorkTimeRegime; // 'temps_plein' (TC) ou 'temps_partiel' (TP)
   jobTitle: string;
   coefficient: number;
   salaryCalculationMode?: 'point_value' | 'manual';
   pointValue: number;
   monthlyGrossSalary: number;
   hourlyRate: number;
-  weeklyHours: number;
-  monthlyHours: number;
+  weeklyHours?: number; // Facultatif
+  monthlyHours?: number; // Facultatif
   additionalBonus?: number;
   bonusDetails?: string;
 
@@ -200,7 +217,19 @@ export interface AppDatabase {
 export interface TagInfo {
   tag: string;
   label: string;
-  category: 'Salarié' | 'Poste & Salaire' | 'Dates & Durées' | 'Entreprise' | 'Transport';
+  category: 'Salarié' | 'Poste & Salaire' | 'Accords & Féminin' | 'Dates & Durées' | 'Entreprise' | 'Transport';
   description: string;
   example: string;
 }
+
+export const WORK_TIME_REGIME_LABELS: Record<WorkTimeRegime, string> = {
+  temps_plein: 'Temps Complet (TC)',
+  temps_partiel: 'Temps Partiel (TP)',
+};
+
+export const ARTICLE_WORK_TIME_TARGET_LABELS: Record<ArticleWorkTimeTarget, string> = {
+  les_deux: 'TC & TP (Les deux)',
+  temps_plein: 'Temps Complet (TC) uniquement',
+  temps_partiel: 'Temps Partiel (TP) uniquement',
+};
+

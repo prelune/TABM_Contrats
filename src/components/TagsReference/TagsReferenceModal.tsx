@@ -20,7 +20,7 @@ export const TagsReferenceModal: React.FC<TagsReferenceModalProps> = ({
 
   if (!isOpen) return null;
 
-  const categories = ['all', 'Salarié', 'Poste & Salaire', 'Dates & Durées', 'Transport', 'Entreprise'];
+  const categories = ['all', 'Salarié', 'Poste & Salaire', 'Accords & Féminin', 'Dates & Durées', 'Transport', 'Entreprise'];
 
   const filteredTags = AVAILABLE_TAGS.filter((t) => {
     const matchesCat = selectedCategory === 'all' || t.category === selectedCategory;
@@ -64,21 +64,23 @@ export const TagsReferenceModal: React.FC<TagsReferenceModalProps> = ({
           </button>
         </div>
 
-        {/* Notice on Salary Tag */}
-        <div className="bg-blue-50 border-b border-blue-100 px-6 py-3 flex items-start space-x-3">
-          <Info className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
-          <p className="text-xs text-blue-800">
-            <strong className="font-semibold">Calcul automatique du salaire :</strong> Les balises{' '}
-            <code className="bg-blue-100/80 px-1 py-0.5 rounded font-mono text-blue-900 font-bold">
-              {'{{salaire_mensuel}}'}
-            </code>{' '}
-            et{' '}
-            <code className="bg-blue-100/80 px-1 py-0.5 rounded font-mono text-blue-900 font-bold">
-              {'{{taux_horaire}}'}
-            </code>{' '}
-            sont automatiquement calculées selon la formule :{' '}
-            <span className="underline decoration-blue-400 font-medium">Coefficient du métier × Valeur actuelle du point entreprise</span>.
-          </p>
+        {/* Notices: Féminin & Salaire */}
+        <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x border-b border-slate-200 bg-slate-50 text-xs">
+          <div className="p-3 bg-pink-50/60 flex items-start space-x-2.5">
+            <Info className="w-4 h-4 text-pink-600 mt-0.5 shrink-0" />
+            <div className="text-slate-700">
+              <strong className="text-pink-900 font-bold block mb-0.5">Accords au féminin automatiques (si Mme) :</strong>
+              Utilisez <code className="bg-pink-100 text-pink-800 px-1 py-0.2 rounded font-mono font-bold">{'{{e}}'}</code> pour accorder un mot (ex : <em>engagé{'{{e}}'}</em>), ou <code className="bg-pink-100 text-pink-800 px-1 py-0.2 rounded font-mono font-bold">{'{{accord:masculin|féminin}}'}</code> (ex : <em>{'{{accord:le salarié|la salariée}}'}</em>).
+            </div>
+          </div>
+
+          <div className="p-3 bg-blue-50/60 flex items-start space-x-2.5">
+            <Info className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+            <div className="text-slate-700">
+              <strong className="text-blue-900 font-bold block mb-0.5">Calcul automatique du salaire :</strong>
+              <code className="bg-blue-100 text-blue-900 px-1 py-0.2 rounded font-mono font-bold">{'{{salaire_mensuel}}'}</code> est calculé selon : <span className="font-medium text-blue-950">Coefficient × Valeur du point</span>.
+            </div>
+          </div>
         </div>
 
         {/* Filter bar */}
