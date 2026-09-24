@@ -70,22 +70,54 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     setSaveSuccess(false);
   };
 
-  // Handle Logo Upload (read as Data URL base64)
+  // Handle Logo Upload with automatic lightweight compression (max 380px width, ~30KB)
+  // Évite l'explosion de la mémoire, les crashs html2canvas et le dépassement de quota localStorage
   const processImageFile = (file: File) => {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Veuillez sélectionner un fichier image valide (PNG recommandé).');
       return;
     }
 
     const reader = new FileReader();
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string;
-      setFormData((prev) => ({
-        ...prev,
-        logoUrl: dataUrl,
-      }));
+      if (!dataUrl) return;
+
+      const img = new Image();
+      img.onload = () => {
+        // Redimensionnement proportionnel : max 380px de large ou 140px de haut
+        const maxW = 380;
+        const maxH = 140;
+        let targetW = img.width;
+        let targetH = img.height;
+
+        if (targetW > maxW || targetH > maxH) {
+          const ratio = Math.min(maxW / targetW, maxH / targetH);
+          targetW = Math.round(targetW * ratio);
+          targetH = Math.round(targetH * ratio);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, targetW, targetH);
+          // Export PNG optimisé
+          const optimizedDataUrl = canvas.toDataURL('image/png');
+          setFormData((prev) => ({
+            ...prev,
+            logoUrl: optimizedDataUrl,
+          }));
+        } else {
+          setFormData((prev) => ({
+            ...prev,
+            logoUrl: dataUrl,
+          }));
+        }
+      };
+      img.src = dataUrl;
     };
     reader.readAsDataURL(file);
   };

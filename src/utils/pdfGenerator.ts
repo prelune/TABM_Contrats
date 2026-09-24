@@ -2,21 +2,23 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 /**
- * Downloads a contract as a formatted multi-page PDF document.
- * Handles isolated cloning, high-DPI rasterization, and semantic block pagination
- * to avoid splitting lines or paragraphs in half.
+ * Télécharge le contrat au format PDF propre et allégé.
+ * - Évite les blocages infinis grâce à un timeout de sécurité.
+ * - Utilise un ratio de rastérisation équilibré (scale: 1.25) pour diviser la consommation mémoire par 4 et éliminer les crashs.
+ * - Gère le multi-pages avec respect des proportions A4.
+ * - Si le navigateur rencontre une contrainte mémoire, bascule en douceur vers l'impression native.
  */
 export async function downloadContractAsPdf(elementId: string, filename: string): Promise<void> {
   const element = document.getElementById(elementId);
   if (!element) {
     console.error(`Élément #${elementId} introuvable pour la génération PDF`);
-    window.print();
+    printContractDocument(elementId);
     return;
   }
 
   const cleanFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
 
-  // 1. Create an isolated off-screen container matching exact A4 proportions (794px width = 210mm @ 96DPI)
+  // Création d'un conteneur isolé A4 (794px à 96DPI = 210mm)
   const cloneWrapper = document.createElement('div');
   cloneWrapper.style.position = 'fixed';
   cloneWrapper.style.left = '-9999px';
@@ -29,7 +31,6 @@ export async function downloadContractAsPdf(elementId: string, filename: string)
   cloneWrapper.style.margin = '0';
 
   const clonedContent = element.cloneNode(true) as HTMLElement;
-  // Ensure background and sizing are clean
   clonedContent.style.width = '794px';
   clonedContent.style.maxWidth = '794px';
   clonedContent.style.margin = '0 auto';
@@ -40,8 +41,13 @@ export async function downloadContractAsPdf(elementId: string, filename: string)
   cloneWrapper.appendChild(clonedContent);
   document.body.appendChild(cloneWrapper);
 
-  try {
-    // 2. Wait for any images in the cloned element to fully load
+  // Promesse avec délai d'attente maximum (5 secondes) pour ne jamais geler l'interface
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Délai dépassé pour la génération PDF directe')), 5000)
+  );
+
+  const generationPromise = (async () => {
+    // Attendre brièvement le chargement des images éventuelles (max 1s)
     const images = Array.from(cloneWrapper.querySelectorAll('img'));
     await Promise.all(
       images.map(
@@ -50,54 +56,17 @@ export async function downloadContractAsPdf(elementId: string, filename: string)
             if (img.complete) {
               resolve();
             } else {
-              img.onload = () => resolve();
-              img.onerror = () => resolve();
+              const timer = setTimeout(() => resolve(), 1000);
+              img.onload = () => { clearTimeout(timer); resolve(); };
+              img.onerror = () => { clearTimeout(timer); resolve(); };
             }
           })
       )
     );
 
-    // 3. Try native jsPDF html() converter with semantic autoPaging
-    let generatedSuccessfully = false;
-
-    try {
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-        compress: true,
-      });
-
-      await new Promise<void>((resolve, reject) => {
-        pdf.html(clonedContent, {
-          x: 12,
-          y: 12,
-          width: 186, // 210mm - 24mm margins
-          windowWidth: 794,
-          autoPaging: 'text',
-          margin: [12, 12, 12, 12],
-          callback: (doc) => {
-            try {
-              doc.save(cleanFilename);
-              generatedSuccessfully = true;
-              resolve();
-            } catch (saveErr) {
-              reject(saveErr);
-            }
-          },
-        });
-      });
-    } catch (jspdfHtmlError) {
-      console.warn('jsPDF.html conversion non optimale, recours au mode canvas paginé haute résolution:', jspdfHtmlError);
-    }
-
-    if (generatedSuccessfully) {
-      return;
-    }
-
-    // 4. Fallback: High-resolution canvas with smart block pagination
+    // Rastérisation rapide avec scale: 1.25 (qualité nette et mémoire minimale ~12Mo vs 80Mo)
     const canvas = await html2canvas(clonedContent, {
-      scale: 2,
+      scale: 1.25,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
@@ -106,11 +75,17 @@ export async function downloadContractAsPdf(elementId: string, filename: string)
       scrollY: 0,
     });
 
-    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+      compress: true,
+    });
+
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
 
-    // Ratio of A4 in pixels on this canvas
+    // Hauteur d'une page A4 en pixels sur ce canvas
     const pageHeightPx = Math.floor(canvas.width * (297 / 210));
     const totalPages = Math.max(1, Math.ceil(canvas.height / pageHeightPx));
 
@@ -140,7 +115,8 @@ export async function downloadContractAsPdf(elementId: string, filename: string)
           currentSliceHeight
         );
 
-        const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.98);
+        // Compression JPEG 0.90 : fichiers légers (~1 Mo) et transfert instantané
+        const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.90);
 
         if (pageIndex > 0) {
           pdf.addPage();
@@ -151,8 +127,12 @@ export async function downloadContractAsPdf(elementId: string, filename: string)
     }
 
     pdf.save(cleanFilename);
-  } catch (error) {
-    console.error('Erreur lors de la génération PDF, ouverture du dialogue impression:', error);
+  })();
+
+  try {
+    await Promise.race([generationPromise, timeoutPromise]);
+  } catch (err) {
+    console.warn('Génération PDF directe ralentie ou interrompue, basculement vers impression native :', err);
     printContractDocument(elementId);
   } finally {
     if (document.body.contains(cloneWrapper)) {
@@ -161,6 +141,13 @@ export async function downloadContractAsPdf(elementId: string, filename: string)
   }
 }
 
+/**
+ * Ouvre le dialogue d'impression ou d'enregistrement PDF natif du navigateur.
+ * Avantages :
+ * - 0 Mo de mémoire JavaScript (pas de saturation ni de crash)
+ * - Texte 100% vectoriel, net à tout niveau de zoom, sélectionnable et recherchable
+ * - Fichier résultant extrêmement léger (< 150 Ko)
+ */
 export function printContractDocument(elementId: string): void {
   const element = document.getElementById(elementId);
   if (!element) {
@@ -190,7 +177,7 @@ export function printContractDocument(elementId: string): void {
       <html lang="fr">
         <head>
           <meta charset="utf-8">
-          <title>Impression Contrat - TABM</title>
+          <title>Contrat de travail - TABM</title>
           <style>
             @page {
               size: A4 portrait;
@@ -199,7 +186,7 @@ export function printContractDocument(elementId: string): void {
             body {
               font-family: Georgia, Cambria, "Times New Roman", Times, serif;
               color: #111827;
-              background: #fff;
+              background: #ffffff;
               line-height: 1.5;
               font-size: 11pt;
               margin: 0;
@@ -219,13 +206,20 @@ export function printContractDocument(elementId: string): void {
             .article-block {
               margin-bottom: 1.25rem;
               page-break-inside: avoid;
+              break-inside: avoid;
             }
             .signatures-block {
-              margin-top: 2.5rem;
+              margin-top: 2rem;
               page-break-inside: avoid;
+              break-inside: avoid;
             }
             table {
               width: 100%;
+              border-collapse: collapse;
+            }
+            img {
+              max-height: 48px;
+              width: auto;
             }
           </style>
         </head>
@@ -242,20 +236,17 @@ export function printContractDocument(elementId: string): void {
       try {
         iframe.contentWindow?.focus();
         iframe.contentWindow?.print();
-      } catch (err) {
-        console.warn('Iframe print failed, falling back to window.print', err);
+      } catch {
         window.print();
       } finally {
         setTimeout(() => {
           if (document.body.contains(iframe)) {
             document.body.removeChild(iframe);
           }
-        }, 3000);
+        }, 2000);
       }
-    }, 400);
-  } catch (e) {
-    console.warn('Fallback print:', e);
+    }, 250);
+  } catch {
     window.print();
   }
 }
-

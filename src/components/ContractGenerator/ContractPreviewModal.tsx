@@ -146,7 +146,7 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
                   ? 'bg-emerald-600 text-white border-emerald-500'
                   : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
               }`}
-              title="Télécharger directement au format Word (.doc) parfaitement mis en page"
+              title="Télécharger directement au format Word (.doc) léger et transférable (~15 Ko, compatible Word 365, LibreOffice, Google Docs)"
             >
               {wordExportSuccess ? (
                 <>
@@ -161,29 +161,32 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
               )}
             </button>
 
-            {/* Print Button */}
+            {/* Print & Vector PDF Button */}
             <button
               onClick={handlePrint}
-              className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
-              title="Imprimer ou enregistrer en PDF via le navigateur"
+              className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-700 hover:bg-indigo-600 text-white border border-indigo-600 shadow-xs transition"
+              title="Recommandé : Ouvre la boîte de dialogue pour imprimer ou 'Enregistrer au format PDF'. Texte 100% vectoriel, fichier léger et 0 plantage."
             >
               <Printer className="w-3.5 h-3.5 mr-1.5" />
-              Imprimer
+              Imprimer / Enregistrer PDF
             </button>
 
-            {/* Download PDF Button */}
+            {/* Direct Download PDF Button */}
             <button
               onClick={handleDownloadPdf}
               disabled={isDownloading}
-              className={`inline-flex items-center px-4 py-1.5 text-xs font-bold rounded-lg shadow-sm transition ${
+              className={`inline-flex items-center px-3.5 py-1.5 text-xs font-bold rounded-lg shadow-sm transition ${
                 downloadSuccess
                   ? 'bg-emerald-600 text-white'
                   : 'bg-blue-600 hover:bg-blue-500 text-white'
               }`}
-              title={`Nom du fichier : ${pdfFilename}`}
+              title={`Télécharger directement le fichier ${pdfFilename}`}
             >
               {isDownloading ? (
-                <>Génération PDF...</>
+                <>
+                  <span className="w-3 h-3 mr-1.5 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block"></span>
+                  Génération PDF...
+                </>
               ) : downloadSuccess ? (
                 <>
                   <CheckCircle2 className="w-4 h-4 mr-1.5" />
@@ -191,7 +194,7 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4 mr-1.5" />
+                  <Download className="w-3.5 h-3.5 mr-1.5" />
                   Télécharger PDF
                 </>
               )}

@@ -262,6 +262,8 @@ export function getContractAsPlainText(
 
 /**
  * Exports contract to formatted Microsoft Word compatible document (.doc / HTML Word)
+ * Highly optimized, crash-free: does not embed large base64 PNGs that cause Word to freeze,
+ * uses clean styling and standard tables supported by all versions of Word and office suites.
  */
 export function exportContractToWordDocument(
   data: ContractEmployeeData,
@@ -274,11 +276,11 @@ export function exportContractToWordDocument(
   const articlesHtml = doc.compiledArticles
     .map(
       (art) => `
-      <div style="margin-bottom: 18pt; page-break-inside: avoid; mso-break-inside: avoid;">
-        <h3 style="font-family: Arial, sans-serif; font-size: 11pt; font-weight: bold; color: #0f172a; border-bottom: 1pt solid #cbd5e1; padding-bottom: 4pt; margin-top: 14pt; margin-bottom: 8pt; text-transform: uppercase; text-align: left;">
+      <div style="margin-bottom: 16pt; page-break-inside: avoid;">
+        <h3 style="font-family: Arial, Helvetica, sans-serif; font-size: 11pt; font-weight: bold; color: #0f172a; border-bottom: 1pt solid #cbd5e1; padding-bottom: 3pt; margin-top: 14pt; margin-bottom: 6pt; text-transform: uppercase; text-align: left;">
           ${art.title}
         </h3>
-        <p style="font-family: 'Times New Roman', Times, serif; font-size: 11pt; line-height: 1.5; text-align: left; color: #1e293b; margin: 0 0 10pt 0;">
+        <p style="font-family: 'Times New Roman', Times, serif; font-size: 11pt; line-height: 1.5; text-align: left; color: #1e293b; margin: 0 0 8pt 0;">
           ${art.text.replace(/\n/g, '<br/>')}
         </p>
       </div>
@@ -286,197 +288,161 @@ export function exportContractToWordDocument(
     )
     .join('');
 
+  // SÉCURITÉ WORD : Word plante ou freeze indéfiniment si on injecte un gros data:image/... base64.
+  // Si c'est une vraie URL web http(s), on l'intègre ; sinon on affiche un élégant cartouche entreprise texte.
+  const isWebUrl = (url?: string) => Boolean(url && (url.startsWith('http://') || url.startsWith('https://')));
+  const companyBadgeOrLogo = isWebUrl(data.establishmentLogoUrl)
+    ? `<img src="${data.establishmentLogoUrl}" width="110" style="max-height: 44pt; width: auto;" alt="Logo" />`
+    : `<table border="0" cellspacing="0" cellpadding="0" style="background-color: #1e3a8a; border-radius: 3pt;">
+         <tr>
+           <td style="padding: 6pt 10pt; font-family: Arial, sans-serif; font-size: 11pt; font-weight: bold; color: #ffffff; text-align: center; text-transform: uppercase;">
+             ${data.companyName.substring(0, 16)}
+           </td>
+         </tr>
+       </table>`;
+
   const wordContent = `
     <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
     <head>
       <meta charset='utf-8'>
       <title>${doc.title}</title>
-      <!--[if gte mso 9]>
-      <xml>
-        <w:WordDocument>
-          <w:View>Print</w:View>
-          <w:Zoom>100</w:Zoom>
-          <w:DoNotOptimizeForBrowser/>
-        </w:WordDocument>
-      </xml>
-      <![endif]-->
       <style>
-        <!--
-        @page Section1 {
-          size: 595.3pt 841.9pt; /* A4 */
-          margin: 70.85pt 56.7pt 70.85pt 56.7pt;
-          mso-header-margin: 35.4pt;
-          mso-footer-margin: 35.4pt;
-          mso-header: h1;
-          mso-footer: f1;
-          mso-paper-source: 0;
-        }
-        div.Section1 {
-          page: Section1;
-        }
-        p.MsoHeader, div.MsoHeader {
-          margin: 0cm;
-          margin-bottom: .0001pt;
-          mso-pagination: widow-orphan;
-          font-size: 8.5pt;
-          font-family: Arial, sans-serif;
-        }
-        p.MsoFooter, div.MsoFooter {
-          margin: 0cm;
-          margin-bottom: .0001pt;
-          mso-pagination: widow-orphan;
-          font-size: 8.0pt;
-          font-family: Arial, sans-serif;
+        @page {
+          size: 21cm 29.7cm;
+          margin: 2.2cm 2cm 2.2cm 2cm;
         }
         body {
           font-family: 'Times New Roman', Times, serif;
           font-size: 11pt;
-          line-height: 1.5;
-          color: #111827;
+          line-height: 1.45;
+          color: #0f172a;
           text-align: left;
+          background: #ffffff;
         }
         p {
           text-align: left;
-          margin: 0 0 10pt 0;
+          margin: 0 0 8pt 0;
         }
         h1 {
-          font-family: Arial, sans-serif;
+          font-family: Arial, Helvetica, sans-serif;
           font-size: 14pt;
           font-weight: bold;
           text-align: center;
           text-transform: uppercase;
-          letter-spacing: 0.5pt;
-          margin: 15pt 0 6pt 0;
+          margin: 16pt 0 4pt 0;
           color: #0f172a;
         }
         .parties-box {
           background-color: #f8fafc;
           border: 1pt solid #cbd5e1;
-          padding: 12pt;
-          margin: 14pt 0 18pt 0;
+          padding: 10pt 12pt;
+          margin: 12pt 0 16pt 0;
           font-size: 10.5pt;
-          line-height: 1.5;
+          line-height: 1.45;
           text-align: left;
         }
-        -->
       </style>
     </head>
     <body lang="FR">
-      <div class="Section1">
-        <!-- VRAIE EN-TÊTE WORD DÉDIÉE (répétée en haut de chaque page de document) -->
-        <div style="mso-element:header" id="h1">
-          <div class="MsoHeader">
-            <table border="0" cellspacing="0" cellpadding="0" width="100%" style="width:100%; border-bottom: 1.5pt solid #1e3a8a; padding-bottom: 6pt; margin-bottom: 12pt;">
-              <tr>
-                ${data.establishmentLogoUrl ? `<td width="115" style="vertical-align: middle; padding-right: 12pt;"><img src="${data.establishmentLogoUrl}" width="100" style="max-height: 46pt; height: auto;" alt="Logo" /></td>` : ''}
-                <td style="vertical-align: middle; text-align: left;">
-                  <p style="margin:0; font-family: Arial, sans-serif; font-size: 11pt; font-weight: bold; color: #1e3a8a; text-align: left;">
-                    ${data.companyName.toUpperCase()}
-                  </p>
-                  ${data.establishmentName ? `<p style="margin:0; font-family: Arial, sans-serif; font-size: 9.5pt; font-weight: bold; color: #2563eb; text-align: left;">${data.establishmentName}</p>` : ''}
-                  <p style="margin:0; font-family: Arial, sans-serif; font-size: 8pt; color: #64748b; text-align: left;">
-                    ${data.companyAddress}, ${data.companyCity} — ${data.collectiveAgreement}
-                  </p>
-                </td>
-                <td style="vertical-align: middle; text-align: right; width: 140pt;">
-                  <p style="margin:0; font-family: Arial, sans-serif; font-size: 8.5pt; font-weight: bold; color: #475569; text-align: right;">
-                    DOCUMENT CONTRACTUEL RH
-                  </p>
-                  <p style="margin:0; font-family: Arial, sans-serif; font-size: 8pt; color: #64748b; text-align: right;">
-                    Statut : ${data.status.toUpperCase()}
-                  </p>
-                </td>
-              </tr>
-            </table>
-          </div>
-        </div>
+      <!-- EN-TÊTE D'ENTREPRISE ÉPURÉE ET PROPRE -->
+      <table border="0" cellspacing="0" cellpadding="0" width="100%" style="width:100%; border-bottom: 2pt solid #1e3a8a; padding-bottom: 6pt; margin-bottom: 12pt;">
+        <tr>
+          <td width="120" style="vertical-align: middle; padding-right: 12pt;">
+            ${companyBadgeOrLogo}
+          </td>
+          <td style="vertical-align: middle; text-align: left;">
+            <p style="margin:0; font-family: Arial, sans-serif; font-size: 12pt; font-weight: bold; color: #1e3a8a; text-align: left;">
+              ${data.companyName.toUpperCase()}
+            </p>
+            ${data.establishmentName ? `<p style="margin:2pt 0 0 0; font-family: Arial, sans-serif; font-size: 9.5pt; font-weight: bold; color: #2563eb; text-align: left;">${data.establishmentName}</p>` : ''}
+            <p style="margin:2pt 0 0 0; font-family: Arial, sans-serif; font-size: 8.5pt; color: #64748b; text-align: left;">
+              ${data.companyAddress}, ${data.companyCity} — ${data.collectiveAgreement}
+            </p>
+          </td>
+          <td style="vertical-align: middle; text-align: right; width: 140pt;">
+            <p style="margin:0; font-family: Arial, sans-serif; font-size: 8.5pt; font-weight: bold; color: #475569; text-align: right;">
+              DOCUMENT CONTRACTUEL RH
+            </p>
+            <p style="margin:2pt 0 0 0; font-family: Arial, sans-serif; font-size: 8pt; color: #64748b; text-align: right;">
+              Statut : ${data.status.toUpperCase()}
+            </p>
+          </td>
+        </tr>
+      </table>
 
-        <!-- VRAI PIED DE PAGE WORD DÉDIÉ (répété en bas de chaque page de document) -->
-        <div style="mso-element:footer" id="f1">
-          <div class="MsoFooter">
-            <table border="0" cellspacing="0" cellpadding="0" width="100%" style="width:100%; border-top: 1pt solid #cbd5e1; padding-top: 5pt; font-family: Arial, sans-serif; font-size: 8pt; color: #64748b;">
-              <tr>
-                <td style="text-align: left; vertical-align: top; width: 85%;">
-                  <p style="margin:0; text-align: left; font-size: 8pt; color: #64748b; line-height: 1.3;">
-                    Raison Sociale : <strong>${data.companyName}</strong> — SIRET : ${data.establishmentSiret || '482 910 324 00028'} — APE : ${data.establishmentApe || '4939A'} — ${data.companyAddress}, ${data.companyCity}
-                  </p>
-                  ${data.establishmentFooterText ? `<p style="margin:2pt 0 0 0; text-align: left; font-size: 7.5pt; font-style: italic; color: #475569;">${data.establishmentFooterText}</p>` : ''}
-                </td>
-                <td style="text-align: right; vertical-align: top; width: 15%; font-family: Arial, sans-serif; font-size: 8pt; color: #64748b;">
-                  <p style="margin:0; text-align: right;">
-                    <!--[if supportFields]>
-                    <span class="msoPageNumber">Page <span style="mso-field-code: PAGE "></span> / <span style="mso-field-code: NUMPAGES "></span></span>
-                    <![endif]-->
-                  </p>
-                </td>
-              </tr>
-            </table>
-          </div>
-        </div>
+      <!-- TITRE DU CONTRAT -->
+      <h1>${doc.title}</h1>
+      <p style="text-align: center; font-family: Arial, sans-serif; font-size: 10pt; color: #475569; margin-top: 0; margin-bottom: 16pt;">
+        Poste : <strong>${data.jobTitle}</strong> • Coefficient : <strong>${data.coefficient}</strong> • Temps : <strong>${data.weeklyHours}h/semaine</strong>
+      </p>
 
-        <!-- CORPS DU CONTRAT -->
-        <h1>${doc.title}</h1>
-        <p style="text-align: center; font-family: Arial, sans-serif; font-size: 10pt; color: #475569; margin-top: -6pt; margin-bottom: 18pt;">
-          Poste : <strong>${data.jobTitle}</strong> • Coefficient : <strong>${data.coefficient}</strong> • Temps : <strong>${data.weeklyHours}h/semaine</strong>
+      <!-- PARTIES -->
+      <div class="parties-box">
+        <p style="margin: 0; font-family: 'Times New Roman', Times, serif; font-size: 10.5pt; line-height: 1.5; text-align: left; color: #1e293b;">
+          ${doc.partiesHtml.replace(/\n/g, '<br/>')}
+        </p>
+      </div>
+
+      <!-- ARTICLES -->
+      ${articlesHtml}
+
+      <!-- BLOC DE SIGNATURES COMPATIBLE WORD -->
+      <div style="margin-top: 24pt; page-break-inside: avoid;">
+        <p style="font-family: Arial, sans-serif; font-size: 10pt; color: #334155; margin-bottom: 10pt; text-align: left;">
+          Fait à ${data.companyCity || 'Lyon'}, le ${new Date().toLocaleDateString('fr-FR')}, en deux exemplaires originaux.<br/>
+          <span style="font-style: italic; font-size: 9pt; color: #64748b;">(Faire précéder chaque signature de la mention manuscrite « Bon pour accord, lu et approuvé »)</span>
         </p>
 
-        <div class="parties-box">
-          <p style="margin: 0; font-family: 'Times New Roman', Times, serif; font-size: 10.5pt; line-height: 1.5; text-align: left; color: #1e293b;">
-            ${doc.partiesHtml.replace(/\n/g, '<br/>')}
-          </p>
-        </div>
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="width: 100%; border-collapse: separate;">
+          <tr>
+            <!-- Carré Signature Employeur -->
+            <td width="48%" style="width: 48%; border: 1.5pt solid #475569; background-color: #f8fafc; padding: 12pt; vertical-align: top; height: 160pt;">
+              <p style="margin: 0; font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold; text-transform: uppercase; color: #0f172a; text-align: left;">
+                Pour la Société ${data.companyName}
+              </p>
+              <p style="margin: 3pt 0 0 0; font-family: Arial, sans-serif; font-size: 9.5pt; color: #334155; text-align: left;">
+                ${data.companyRepresentative}<br/>(${data.representativeRole})
+              </p>
+              <p style="margin: 12pt 0 0 0; font-family: Arial, sans-serif; font-size: 8.5pt; color: #64748b; font-style: italic; text-align: left; border-top: 1pt dashed #cbd5e1; padding-top: 4pt;">
+                Date, mention manuscrite et signature :
+              </p>
+              <div style="height: 80pt; min-height: 80pt;">&nbsp;</div>
+            </td>
 
-        ${articlesHtml}
+            <!-- Séparation -->
+            <td width="4%" style="width: 4%;">&nbsp;</td>
 
-        <!-- BLOC DE SIGNATURES SPATIEUX POUR WORD -->
-        <div style="margin-top: 30pt; page-break-inside: avoid; mso-break-inside: avoid;">
-          <p style="font-family: Arial, sans-serif; font-size: 10pt; color: #334155; margin-bottom: 12pt; text-align: left;">
-            Fait à ${data.companyCity || 'Lyon'}, le ${new Date().toLocaleDateString('fr-FR')}, en deux exemplaires originaux.<br/>
-            <span style="font-style: italic; font-size: 9pt; color: #64748b;">(Faire précéder chaque signature de la mention manuscrite « Bon pour accord, lu et approuvé »)</span>
-          </p>
-
-          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="width: 100%; border-collapse: separate;">
-            <tr>
-              <!-- Carré Signature Employeur -->
-              <td width="48%" style="width: 48%; border: 1.5pt solid #475569; background-color: #f8fafc; padding: 14pt; vertical-align: top; height: 180pt;">
-                <p style="margin: 0; font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold; text-transform: uppercase; color: #0f172a; text-align: left;">
-                  Pour la Société ${data.companyName}
-                </p>
-                <p style="margin: 4pt 0 0 0; font-family: Arial, sans-serif; font-size: 9.5pt; color: #334155; text-align: left;">
-                  ${data.companyRepresentative}<br/>(${data.representativeRole})
-                </p>
-                <p style="margin: 14pt 0 0 0; font-family: Arial, sans-serif; font-size: 8.5pt; color: #64748b; font-style: italic; text-align: left;">
-                  Mention manuscrite et signature autorisée :
-                </p>
-                <!-- Espace réservé pour la signature manuscrite -->
-                <div style="height: 100pt; min-height: 100pt;">&nbsp;</div>
-              </td>
-
-              <!-- Séparation -->
-              <td width="4%" style="width: 4%;">&nbsp;</td>
-
-              <!-- Carré Signature Salarié -->
-              <td width="48%" style="width: 48%; border: 1.5pt solid #475569; background-color: #f8fafc; padding: 14pt; vertical-align: top; height: 180pt;">
-                <p style="margin: 0; font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold; text-transform: uppercase; color: #0f172a; text-align: left;">
-                  Le Salarié
-                </p>
-                <p style="margin: 4pt 0 0 0; font-family: Arial, sans-serif; font-size: 9.5pt; color: #334155; text-align: left;">
-                  ${data.civility} ${data.firstName} ${data.lastName.toUpperCase()}
-                </p>
-                <p style="margin: 14pt 0 0 0; font-family: Arial, sans-serif; font-size: 8.5pt; color: #64748b; font-style: italic; text-align: left;">
-                  Mention manuscrite et signature :
-                </p>
-                <!-- Espace réservé pour la signature manuscrite -->
-                <div style="height: 100pt; min-height: 100pt;">&nbsp;</div>
-              </td>
-            </tr>
-          </table>
-        </div>
+            <!-- Carré Signature Salarié -->
+            <td width="48%" style="width: 48%; border: 1.5pt solid #475569; background-color: #f8fafc; padding: 12pt; vertical-align: top; height: 160pt;">
+              <p style="margin: 0; font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold; text-transform: uppercase; color: #0f172a; text-align: left;">
+                Le Salarié
+              </p>
+              <p style="margin: 3pt 0 0 0; font-family: Arial, sans-serif; font-size: 9.5pt; color: #334155; text-align: left;">
+                ${data.civility} ${data.firstName} ${data.lastName.toUpperCase()}
+              </p>
+              <p style="margin: 12pt 0 0 0; font-family: Arial, sans-serif; font-size: 8.5pt; color: #64748b; font-style: italic; text-align: left; border-top: 1pt dashed #cbd5e1; padding-top: 4pt;">
+                Date, mention manuscrite et signature :
+              </p>
+              <div style="height: 80pt; min-height: 80pt;">&nbsp;</div>
+            </td>
+          </tr>
+        </table>
       </div>
+
+      <!-- PIED DE PAGE MENTIONS LÉGALES -->
+      <table border="0" cellspacing="0" cellpadding="0" width="100%" style="width:100%; border-top: 1pt solid #cbd5e1; margin-top: 30pt; padding-top: 6pt; font-family: Arial, sans-serif; font-size: 8pt; color: #64748b;">
+        <tr>
+          <td style="text-align: left; vertical-align: top;">
+            Raison Sociale : <strong>${data.companyName}</strong> — SIRET : ${data.establishmentSiret || '482 910 324 00028'} — APE : ${data.establishmentApe || '4939A'} — ${data.companyAddress}, ${data.companyCity}
+            ${data.establishmentFooterText ? `<br/><span style="font-style: italic; color: #475569;">${data.establishmentFooterText}</span>` : ''}
+          </td>
+        </tr>
+      </table>
     </body>
     </html>
   `;
 
+  // Le BOM UTF-8 (\ufeff) garantit la lecture parfaite des accents français sur Windows/Mac Word
   const blob = new Blob(['\ufeff', wordContent], {
     type: 'application/msword;charset=utf-8',
   });
@@ -491,4 +457,5 @@ export function exportContractToWordDocument(
     URL.revokeObjectURL(url);
   }, 200);
 }
+
 

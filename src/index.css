@@ -1,1 +1,57 @@
 @import "tailwindcss";
+
+/* Règles d'impression pour PDF natif haute fidélité (sans fioritures ni débordements) */
+@media print {
+  html, body {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11pt !important;
+    line-height: 1.5 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Masquer tous les éléments d'interface parasite lors de l'impression */
+  nav,
+  header,
+  aside,
+  button,
+  .no-print,
+  .modal-backdrop,
+  [role="dialog"] > div:first-child:not(#contract-document-preview) {
+    display: none !important;
+  }
+
+  /* Isolation et affichage plein format du contrat */
+  #contract-document-preview {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+
+  /* Éviter les coupures de paragraphes et de signatures au milieu d'une page */
+  .article-block {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-bottom: 1.25rem !important;
+  }
+
+  .signatures-block {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-top: 2rem !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 15mm 15mm 15mm 15mm;
+  }
+}
