@@ -43,6 +43,7 @@ export interface Establishment {
   collectiveAgreement: string; // Convention collective applicable
   logoUrl?: string; // Logo de l'établissement (URL ou data-URL base64)
   footerText?: string; // Mention personnalisée de pied de page
+  companyIntroText?: string; // Encart personnalisé de présentation de l'entreprise dans « Entre les soussignés »
   salaryCalculationMode?: 'point_value' | 'manual'; // 'point_value' (Calcul par valeur du point) ou 'manual' (Grille propre / Saisie manuelle)
   pointValue?: number; // Valeur du point spécifique à l'établissement (ex: 10.45 €)
   trialPeriods?: EstablishmentTrialPeriods; // Durées des périodes d'essai personnalisables par établissement
@@ -112,6 +113,7 @@ export interface ContractEmployeeData {
   establishmentApe?: string;
   establishmentLogoUrl?: string;
   establishmentFooterText?: string;
+  establishmentCompanyIntroText?: string; // Encart personnalisé « Entre les soussignés » de l'établissement
 
   companyName: string; // Raison sociale
   companyAddress: string;

@@ -34,6 +34,7 @@ export const DEFAULT_ESTABLISHMENTS: Establishment[] = [
     collectiveAgreement: 'Convention Collective Nationale des Réseaux de Transports Urbains de Voyageurs (IDCC 1424)',
     logoUrl: '',
     footerText: 'TABM Mobilités & Transport Urbain SAS - SIRET 482 910 324 00028 - RCS Lyon B 482 910 324 - APE 4939A',
+    companyIntroText: "La société TABM Mobilités & Transport Urbain SAS,\nSise : 14 Boulevard des Transports, Z.I. Nord, 69009 Lyon\nReprésentée par Laurent DUPONT, agissant en qualité de Directeur Général,\nCi-après dénommée « L'Employeur » ou « La Société »,",
     salaryCalculationMode: 'point_value',
     pointValue: 10.45,
     trialPeriods: {
@@ -62,6 +63,7 @@ export const DEFAULT_ESTABLISHMENTS: Establishment[] = [
     collectiveAgreement: 'Convention Collective Nationale des Transports Routiers et Activités Auxiliaires du Transport (IDCC 16)',
     logoUrl: '',
     footerText: 'TABM Lignes Interurbaines & Régionales SARL - SIRET 519 823 411 00015 - RCS Lyon B 519 823 411 - APE 4939B',
+    companyIntroText: "La société TABM Lignes Interurbaines & Régionales SARL,\nSise : 28 Avenue de l’Industrie, 69800 Saint-Priest\nReprésentée par Béatrice VIAL, agissant en qualité de Directrice des Exploitations Régionales,\nCi-après dénommée « L'Employeur » ou « La Société »,",
     salaryCalculationMode: 'point_value',
     pointValue: 10.20,
     trialPeriods: {
@@ -90,6 +92,7 @@ export const DEFAULT_ESTABLISHMENTS: Establishment[] = [
     collectiveAgreement: 'Convention Collective Nationale des Transports Routiers - Annexe Voyageurs Tourisme (IDCC 16)',
     logoUrl: '',
     footerText: 'TABM Voyages & Grand Tourisme SAS - SIRET 793 401 928 00034 - RCS Lyon B 793 401 928 - APE 4939C',
+    companyIntroText: "La société TABM Voyages & Grand Tourisme SAS,\nSise : 5 Rue des Messageries, 69007 Lyon\nReprésentée par Marc ANTOINE, agissant en qualité de Président Directeur Général,\nCi-après dénommée « L'Employeur » ou « La Société »,",
     salaryCalculationMode: 'manual',
     pointValue: 10.35,
     trialPeriods: {

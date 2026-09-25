@@ -215,6 +215,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     establishmentApe: initialEst?.ape || db.settings.companyApe,
     establishmentLogoUrl: initialEst?.logoUrl,
     establishmentFooterText: initialEst?.footerText,
+    establishmentCompanyIntroText: initialEst?.companyIntroText,
 
     companyName: initialEst?.companyName || db.settings.companyName,
     companyAddress: initialEst?.address || db.settings.companyAddress,
@@ -338,6 +339,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
         collectiveAgreement: est.collectiveAgreement,
         establishmentLogoUrl: est.logoUrl,
         establishmentFooterText: est.footerText,
+        establishmentCompanyIntroText: est.companyIntroText,
         salaryCalculationMode: estMode,
         pointValue: estPoint,
         monthlyGrossSalary: nextMonthly,

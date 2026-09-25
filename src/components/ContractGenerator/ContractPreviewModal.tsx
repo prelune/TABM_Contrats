@@ -355,19 +355,14 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
                     <span>{employeeData.collectiveAgreement}</span>
                     <span>Paraphe Salarié : _______</span>
                   </div>
-                  <div 
-                    className="text-center pt-2 border-t border-slate-200 text-slate-600 font-medium"
-                    style={{ textAlign: 'center', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0', color: '#475569', fontWeight: 500 }}
-                  >
-                    Raison Sociale : <strong style={{ color: '#0f172a' }}>{employeeData.companyName}</strong> — SIRET : {employeeData.establishmentSiret || '482 910 324 00028'} — Code APE : {employeeData.establishmentApe || '4939A'}
-                    <br />
-                    Siège d'exploitation : {employeeData.companyAddress}, {employeeData.companyCity}
-                    {employeeData.establishmentFooterText && (
-                      <span style={{ display: 'block', fontSize: '9px', color: '#94a3b8', marginTop: '2px' }}>
-                        {employeeData.establishmentFooterText}
-                      </span>
-                    )}
-                  </div>
+                  {employeeData.establishmentFooterText && (
+                    <div 
+                      className="text-center pt-2 border-t border-slate-200 text-slate-600 font-medium whitespace-pre-line text-[10px]"
+                      style={{ textAlign: 'center', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0', color: '#475569', fontWeight: 500, fontSize: '10px', whiteSpace: 'pre-line' }}
+                    >
+                      {employeeData.establishmentFooterText}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

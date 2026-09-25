@@ -247,32 +247,44 @@ export function generateContractDocument(
     };
   });
 
+  // Company preamble block in "ENTRE LES SOUSSIGNÉS"
+  let companyPreamble = '';
+  if (data.establishmentCompanyIntroText && data.establishmentCompanyIntroText.trim()) {
+    companyPreamble = replaceContractTags(data.establishmentCompanyIntroText.trim(), data);
+  } else {
+    companyPreamble = `La société ${data.companyName},
+Sise : ${data.companyAddress}, ${data.companyCity}
+Représentée par ${data.companyRepresentative}, agissant en qualité de ${data.representativeRole},
+Ci-après dénommée « L'Employeur » ou « La Société »,`;
+  }
+
+  // Employee preamble block in "ENTRE LES SOUSSIGNÉS"
+  // Per user request:
+  // - Supprimer le numéro de sécurité sociale
+  // - Supprimer le "ci-après dénommé(e) le salarié"
+  const employeePreamble = `${data.civility} ${data.firstName} ${data.lastName.toUpperCase()}
+Demeurant : ${data.address}, ${data.postalCode} ${data.city}
+Né(e) le : ${formatDateFrench(data.birthDate)} à ${data.birthPlace}
+De nationalité : ${data.nationality}`;
+
   const partiesHtml = `
 ENTRE LES SOUSSIGNÉS :
 
-La société ${data.companyName},
-Sise : ${data.companyAddress}, ${data.companyCity}
-Représentée par ${data.companyRepresentative}, agissant en qualité de ${data.representativeRole},
-Ci-après dénommée « L'Employeur » ou « La Société »,
+${companyPreamble}
 
 D'une part,
 
 ET :
 
-${data.civility} ${data.firstName} ${data.lastName.toUpperCase()}
-Demeurant : ${data.address}, ${data.postalCode} ${data.city}
-Né(e) le : ${formatDateFrench(data.birthDate)} à ${data.birthPlace}
-De nationalité : ${data.nationality}
-Numéro de Sécurité Sociale : ${data.socialSecurityNumber}
-Ci-après dénommé(e) « Le Salarié »,
+${employeePreamble}
 
 D'autre part,
 
 IL A ÉTÉ CONVENU ET ARRÊTÉ CE QUI SUIT :
   `.trim();
 
-  const customFooterNotice = data.establishmentFooterText ? ` | ${data.establishmentFooterText}` : '';
-  const legalFooter = `Raison Sociale : ${data.companyName} | ${data.companyAddress}, ${data.companyCity} | SIRET : ${data.establishmentSiret || '482 910 324 00028'} | APE : ${data.establishmentApe || '4939A'} | ${data.collectiveAgreement}${customFooterNotice}`;
+  // Footer: strictly keep the customizable footer text (note de bas de page) from settings
+  const legalFooter = data.establishmentFooterText ? data.establishmentFooterText.trim() : '';
 
   const footerHtml = `
 Fait à ${data.companyCity || 'Lyon'}, le ${formatDateFrench(new Date().toISOString().slice(0, 10))},
@@ -283,9 +295,7 @@ En deux exemplaires originaux, dont un remis à chacune des parties.
 POUR LA SOCIÉTÉ ${data.companyName.toUpperCase()}                   LE SALARIÉ
 ${data.companyRepresentative}                         ${data.firstName} ${data.lastName.toUpperCase()}
 ${data.representativeRole}
-
-__________________________________________________________________________________________
-${legalFooter}
+${legalFooter ? `\n__________________________________________________________________________________________\n${legalFooter}` : ''}
   `.trim();
 
   return {
@@ -327,6 +337,11 @@ export function getContractAsPlainText(
   fullText += `(Mention manuscrite « Bon pour accord, lu et approuvé » avant signature)\n\n`;
   fullText += `Pour la Société ${data.companyName}                  Le Salarié\n`;
   fullText += `${data.companyRepresentative} (${data.representativeRole})     ${data.civility} ${data.firstName} ${data.lastName.toUpperCase()}\n\n`;
+
+  if (data.establishmentFooterText && data.establishmentFooterText.trim()) {
+    fullText += `___________________________________________________________\n`;
+    fullText += `${data.establishmentFooterText.trim()}\n`;
+  }
 
   return fullText;
 }

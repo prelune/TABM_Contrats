@@ -267,6 +267,7 @@ export function exportDatabaseToExcel(db: AppDatabase, filenamePrefix = 'TABM_Co
     Valeur_Point: Number(etab.pointValue ?? db.settings.pointValue ?? 10.45),
     Logo_URL: etab.logoUrl || '',
     Mention_Pied_De_Page: etab.footerText || '',
+    Encart_Entreprise_Soussignes: etab.companyIntroText || '',
     Periode_Essai_CDD_Moins_6M: etab.trialPeriods?.cddUnder6Months || '',
     Periode_Essai_CDD_Plus_6M: etab.trialPeriods?.cddOver6Months || '',
     Periode_Essai_CDI_Cadre: etab.trialPeriods?.cdiCadre || '',
@@ -496,6 +497,7 @@ export function parseExcelToDatabase(dataBuffer: ArrayBuffer): AppDatabase {
         pointValue: r.Valeur_Point !== undefined && r.Valeur_Point !== '' ? Number(r.Valeur_Point) : (newDb.settings.pointValue || 10.45),
         logoUrl: String(r.Logo_URL || r.logoUrl || ''),
         footerText: String(r.Mention_Pied_De_Page || r.footerText || ''),
+        companyIntroText: String(r.Encart_Entreprise_Soussignes || r.companyIntroText || ''),
         trialPeriods: {
           cddUnder6Months: String(r.Periode_Essai_CDD_Moins_6M || r.cddUnder6Months || '1 jour par semaine de contrat'),
           cddOver6Months: String(r.Periode_Essai_CDD_Plus_6M || r.cddOver6Months || '1 mois'),
