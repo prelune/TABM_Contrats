@@ -136,6 +136,7 @@ export interface ContractEmployeeData {
 
   startDate: string;
   endDate?: string; // Si CDD
+  seniorityDate?: string; // Date de reprise d'ancienneté (facultatif)
   cddReason?: string; // Si CDD
   replacedEmployeeName?: string; // Si remplacement
   replacedEmployeeRole?: string;

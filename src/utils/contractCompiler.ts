@@ -113,7 +113,8 @@ export function replaceContractTags(text: string, data: ContractEmployeeData): s
     '{{zone_mobilite}}': data.mobilityZone || 'Réseau et lignes de la société',
     '{{permis_requis}}': data.requiredLicenses || 'Permis et habilitations réglementaires conformes au poste',
     '{{date_signature}}': formatDateFrench(new Date().toISOString().slice(0, 10)),
-    '{{date_anciennete_reprise}}': formatDateFrench(data.startDate),
+    '{{date_anciennete_reprise}}': data.seniorityDate ? formatDateFrench(data.seniorityDate) : formatDateFrench(data.startDate),
+    '{{anciennete}}': data.seniorityDate ? formatDateFrench(data.seniorityDate) : '______',
 
     // Balises directes de genre & accord féminin (M. vs Mme)
     '{{e}}': isFeminine ? 'e' : '',

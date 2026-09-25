@@ -302,8 +302,8 @@ Conformément à l'article L. 1243-13 du Code du travail, le présent contrat po
   },
   {
     id: 'art-cdi-prise-effet',
-    code: 'ART-02-CDI',
-    title: 'Article 2 - Prise d’effet et Période d’essai (Spécifique CDI)',
+    code: 'ART-02A',
+    title: 'Article 2 - Prise d’effet et Période d’essai (Sans reprise d’ancienneté)',
     category: 'Général',
     content: `Le présent contrat prendra effet le {{date_debut}} pour une durée indéterminée.
 Il est subordonné à une période d’essai de {{periode_essai}} de travail effectif. Durant cette période, chacune des parties pourra mettre fin au contrat, sous réserve du respect du délai de prévenance prévu par les articles L. 1221-25 et L. 1221-26 du Code du travail.
@@ -311,9 +311,27 @@ Il est subordonné à une période d’essai de {{periode_essai}} de travail eff
     validContractTypes: ['cdi'],
     validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
     validEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
+    workTimeTarget: 'les_deux',
     isMandatory: true,
     mandatoryEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
     order: 2,
+  },
+  {
+    id: 'art-cdi-reprise-anciennete',
+    code: 'ART-02B',
+    title: 'Article 2 - Prise d’effet, Reprise d’ancienneté et Période d’essai',
+    category: 'Général',
+    content: `Le présent contrat prendra effet le {{date_debut}} pour une durée indéterminée.
+Il est expressément convenu entre les parties une reprise d'ancienneté fixée au {{anciennete}} au titre des fonctions et de l'expérience professionnelle antérieurement accomplies.
+Il est subordonné à une période d’essai de {{periode_essai}} de travail effectif. Durant cette période, chacune des parties pourra mettre fin au contrat, sous réserve du respect du délai de prévenance prévu par les articles L. 1221-25 et L. 1221-26 du Code du travail.
+{{modalites_renouvellement}}`,
+    validContractTypes: ['cdi'],
+    validStatuses: ['employé', 'conducteur', 'ouvrier', 'maitrise', 'haute_maitrise', 'cadre'],
+    validEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
+    workTimeTarget: 'les_deux',
+    isMandatory: false,
+    mandatoryEstablishmentIds: ['etab-1', 'etab-2', 'etab-3'],
+    order: 2.1,
   },
   {
     id: 'art-fonctions',
@@ -808,6 +826,13 @@ export const AVAILABLE_TAGS: TagInfo[] = [
     category: 'Dates & Durées',
     description: 'Durée initiale de la période d’essai',
     example: '2 mois renouvelable',
+  },
+  {
+    tag: '{{anciennete}}',
+    label: 'Date de reprise d’ancienneté',
+    category: 'Dates & Durées',
+    description: 'Date de reprise d’ancienneté reconnue pour le salarié',
+    example: '15/03/2020',
   },
   {
     tag: '{{lieu_travail}}',

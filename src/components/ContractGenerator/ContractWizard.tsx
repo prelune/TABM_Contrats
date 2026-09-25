@@ -45,12 +45,11 @@ import {
   WORK_TIME_REGIME_LABELS
 } from '../../types';
 import { CONTRACT_TYPE_LABELS, EMPLOYEE_STATUS_LABELS } from '../../data/defaultData';
-import { calculateSalary, formatEuro, stripArticlePrefix, computeDefaultTrialPeriod } from '../../utils/contractCompiler';
+import { calculateSalary, formatEuro, stripArticlePrefix, computeDefaultTrialPeriod, formatDateFrench } from '../../utils/contractCompiler';
 import { ContractPreviewModal } from './ContractPreviewModal';
 
-interface ContractBlockConfig {
+export interface ContractSectionConfig {
   id: string;
-  typeKey?: ContractType;
   title: string;
   shortLabel: string;
   description: string;
@@ -58,59 +57,102 @@ interface ContractBlockConfig {
   filterFn: (art: ContractArticle) => boolean;
 }
 
-const CONTRACT_BLOCKS: ContractBlockConfig[] = [
+export const CONTRACT_SECTIONS: ContractSectionConfig[] = [
   {
-    id: 'block-cdi',
-    typeKey: 'cdi',
-    title: '1. Contrat CDI',
-    shortLabel: 'CDI',
-    description: 'Clauses spécifiques au contrat à durée indéterminée',
+    id: 'sec-engagement',
+    title: '1. Engagement, Prise d’effet & Période d’essai',
+    shortLabel: 'Engagement & Durée',
+    description: 'Engagement légal, prise d’effet CDI / terme CDD, période d’essai et reprise d’ancienneté',
     badgeColor: 'blue',
-    filterFn: (art) => art.validContractTypes.includes('cdi') && (art.validContractTypes.length <= 2 || art.id.includes('cdi') || art.code.includes('CDI')),
+    filterFn: (art) =>
+      art.code.startsWith('ART-01') ||
+      art.code.startsWith('ART-02') ||
+      art.id.includes('engagement') ||
+      art.id.includes('prise-effet') ||
+      art.id.includes('duree') ||
+      art.id.includes('anciennete') ||
+      art.category === 'Avenant' ||
+      art.category === 'Mutation',
   },
   {
-    id: 'block-cdd',
-    typeKey: 'cdd',
-    title: '2. Contrat CDD',
-    shortLabel: 'CDD',
-    description: 'Terme précis, motif de recours légal, et remplacement',
+    id: 'sec-fonctions-lieu',
+    title: '2. Fonctions, Attributions & Lieu de Travail',
+    shortLabel: 'Poste & Mobilité',
+    description: 'Attributions inhérentes à la qualification, dépôt de rattachement et clause de mobilité géographique',
     badgeColor: 'amber',
-    filterFn: (art) => art.validContractTypes.includes('cdd') && (art.validContractTypes.length <= 2 || art.id.includes('cdd') || art.code.includes('CDD')),
+    filterFn: (art) =>
+      art.code === 'ART-03' ||
+      art.code === 'ART-04' ||
+      art.category === 'Poste & Missions' ||
+      art.id.includes('fonctions') ||
+      art.id.includes('lieu'),
   },
   {
-    id: 'block-avenant-cdd',
-    typeKey: 'avenant_cdd',
-    title: '3. Avenant CDD',
-    shortLabel: 'Avenant CDD',
-    description: 'Renouvellement et prolongation de mission CDD',
-    badgeColor: 'orange',
-    filterFn: (art) => art.validContractTypes.includes('avenant_cdd') && (art.validContractTypes.length <= 2 || art.id.includes('avenant-cdd') || art.code.includes('AVENANT-CDD') || art.id.includes('cdd-duree')),
-  },
-  {
-    id: 'block-avenant-cdi',
-    typeKey: 'avenant_cdi',
-    title: '4. Avenant passage en CDI',
-    shortLabel: 'Passage en CDI',
-    description: 'Transformation CDD en CDI et reprise d’ancienneté',
+    id: 'sec-temps-travail',
+    title: '3. Organisation & Durée du Temps de Travail',
+    shortLabel: 'Temps de travail',
+    description: 'Horaires contractuels (temps plein 35h ou modalités spécifiques au temps partiel)',
     badgeColor: 'purple',
-    filterFn: (art) => art.validContractTypes.includes('avenant_cdi') && (art.validContractTypes.length <= 2 || art.id.includes('avenant-passage-cdi') || art.id.includes('avenant-cdi') || art.code.includes('AVENANT-CDI') || art.id.includes('non-concurrence')),
+    filterFn: (art) =>
+      art.code.startsWith('ART-05') ||
+      art.category === 'Temps de travail' ||
+      art.id.includes('temps') ||
+      art.id.includes('duree-travail'),
   },
   {
-    id: 'block-tripartite',
-    typeKey: 'convention_tripartite',
-    title: '5. Convention Tripartite',
-    shortLabel: 'Tripartite',
-    description: 'Mutation inter-entreprises du transport et continuité',
-    badgeColor: 'teal',
-    filterFn: (art) => art.validContractTypes.includes('convention_tripartite') && (art.validContractTypes.length <= 2 || art.id.includes('tripartite') || art.code.includes('TRIPARTITE')),
-  },
-  {
-    id: 'block-communs',
-    title: '6. Clauses Communes & Générales',
-    shortLabel: 'Clauses Communes',
-    description: 'Engagement, rémunération coefficient/point, horaires, sécurité transport',
+    id: 'sec-remuneration',
+    title: '4. Rémunération, Coefficient & Primes',
+    shortLabel: 'Rémunération',
+    description: 'Calcul lié au point d’entreprise ou salaire brut d’établissement et primes conventionnelles',
     badgeColor: 'emerald',
-    filterFn: (art) => art.validContractTypes.length > 2 && !art.id.includes('cdi-prise-effet') && !art.id.includes('cdd-duree') && !art.id.includes('tripartite') && !art.id.includes('avenant'),
+    filterFn: (art) =>
+      art.code.startsWith('ART-06') ||
+      art.category === 'Rémunération' ||
+      art.id.includes('remuneration'),
+  },
+  {
+    id: 'sec-transport-securite',
+    title: '5. Réglementation Transport, Conduite & Spécificités Sites',
+    shortLabel: 'Transport & Sécurité',
+    description: 'Permis D, FIMO/FCO, carte conducteur, sécurité routière et clauses d’exploitation (Urbain SAEIV, RSE Tachygraphe, Grand Tourisme)',
+    badgeColor: 'teal',
+    filterFn: (art) =>
+      art.code.startsWith('ART-07') ||
+      art.code.startsWith('ART-08') ||
+      art.code.startsWith('ART-09') ||
+      art.code.startsWith('ART-10') ||
+      art.code.startsWith('ART-11') ||
+      art.category.includes('Transport') ||
+      art.category.includes('Sécurité') ||
+      art.category.includes('Établissement') ||
+      art.category.includes('Lignes') ||
+      art.category.includes('Tourisme'),
+  },
+  {
+    id: 'sec-dispositions-generales',
+    title: '6. Confidentialité, Protection Sociale & Clauses Spéciales',
+    shortLabel: 'Dispositions Générales',
+    description: 'Obligation de loyauté, secret professionnel, non-concurrence (cadre) et mutuelle/prévoyance',
+    badgeColor: 'indigo',
+    filterFn: (art) =>
+      art.code.startsWith('ART-12') ||
+      art.code.startsWith('ART-13') ||
+      art.code.startsWith('ART-14') ||
+      art.id.includes('secret') ||
+      art.id.includes('non-concurrence') ||
+      art.id.includes('prevoyance') ||
+      art.category.includes('Encadrement') ||
+      (!art.code.startsWith('ART-01') &&
+       !art.code.startsWith('ART-02') &&
+       !art.code.startsWith('ART-03') &&
+       !art.code.startsWith('ART-04') &&
+       !art.code.startsWith('ART-05') &&
+       !art.code.startsWith('ART-06') &&
+       !art.code.startsWith('ART-07') &&
+       !art.code.startsWith('ART-08') &&
+       !art.code.startsWith('ART-09') &&
+       !art.code.startsWith('ART-10') &&
+       !art.code.startsWith('ART-11')),
   },
 ];
 
@@ -187,6 +229,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
 
     startDate: new Date().toISOString().slice(0, 10),
     endDate: '',
+    seniorityDate: initialEmployeeData?.seniorityDate || '',
     cddReason: 'Surcroît temporaire d’activité de transport',
     replacedEmployeeName: '',
     replacedEmployeeRole: '',
@@ -331,26 +374,16 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
   const isCustomSelectionRef = useRef<boolean>(Boolean(initialArticleIds && initialArticleIds.length > 0));
 
   // UI display modes for clean & readable experience
-  const [blockViewMode, setBlockViewMode] = useState<'focused' | 'all'>('focused');
+  // Filter to current profile (the 4 dimensions: contractType, status, establishment, workTimeRegime)
+  const [filterToProfileOnly, setFilterToProfileOnly] = useState<boolean>(true);
+  const [groupingMode, setGroupingMode] = useState<'sections' | 'requirements'>('sections');
   const [searchArticleQuery, setSearchArticleQuery] = useState('');
   const [expandedPreviewIds, setExpandedPreviewIds] = useState<string[]>([]);
 
-  // 6 Contract Blocks state
-  const getBlockIdForContractType = (type: ContractType): string => {
-    switch (type) {
-      case 'cdi': return 'block-cdi';
-      case 'cdd': return 'block-cdd';
-      case 'avenant_cdd': return 'block-avenant-cdd';
-      case 'avenant_cdi': return 'block-avenant-cdi';
-      case 'convention_tripartite': return 'block-tripartite';
-      default: return 'block-cdi';
-    }
-  };
-
-  const [expandedBlockIds, setExpandedBlockIds] = useState<string[]>(() => [
-    getBlockIdForContractType(formData.contractType),
-    'block-communs'
-  ]);
+  // Expanded sections state (default: all sections open for immediate overview)
+  const [expandedSectionIds, setExpandedSectionIds] = useState<string[]>(() =>
+    CONTRACT_SECTIONS.map((s) => s.id)
+  );
 
   // Modals
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -394,6 +427,72 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     }
   }, [formData.coefficient, effectivePointValue, formData.additionalBonus, formData.weeklyHours, isEstPointMode]);
 
+  // Helper: check if an article is compatible with the active 4 dimensions + seniority rule
+  const isArticleCompatibleWithProfile = (art: ContractArticle, employeeData: ContractEmployeeData = formData): boolean => {
+    // 1. Contract Type
+    if (!art.validContractTypes.includes(employeeData.contractType)) return false;
+    // 2. Status
+    if (!art.validStatuses.includes(employeeData.status)) return false;
+    // 3. Work Time Regime (TC / TP)
+    if (art.workTimeTarget && art.workTimeTarget !== 'les_deux' && art.workTimeTarget !== employeeData.workTimeRegime) return false;
+    // 4. Establishment
+    if (employeeData.establishmentId && art.validEstablishmentIds && art.validEstablishmentIds.length > 0 && !art.validEstablishmentIds.includes(employeeData.establishmentId)) return false;
+
+    // Seniority rule: ART-02A vs ART-02B for CDI
+    if (employeeData.contractType === 'cdi') {
+      const hasSeniority = Boolean(employeeData.seniorityDate?.trim());
+      if (art.code === 'ART-02A' && hasSeniority) return false;
+      if (art.code === 'ART-02B' && !hasSeniority) return false;
+    }
+
+    return true;
+  };
+
+  // Helper: check if an article is strictly mandatory for THIS contract
+  const isArticleMandatoryForCurrent = (art: ContractArticle): boolean => {
+    // Must strictly match the 4 dimensions
+    if (!art.validContractTypes.includes(formData.contractType)) return false;
+    if (!art.validStatuses.includes(formData.status)) return false;
+    if (art.workTimeTarget && art.workTimeTarget !== 'les_deux' && art.workTimeTarget !== formData.workTimeRegime) return false;
+    if (formData.establishmentId && art.validEstablishmentIds && art.validEstablishmentIds.length > 0 && !art.validEstablishmentIds.includes(formData.establishmentId)) return false;
+
+    // Seniority rule for ART-02A and ART-02B in CDI
+    if (art.code === 'ART-02A') {
+      return formData.contractType === 'cdi' && !Boolean(formData.seniorityDate?.trim());
+    }
+    if (art.code === 'ART-02B') {
+      return formData.contractType === 'cdi' && Boolean(formData.seniorityDate?.trim());
+    }
+
+    // General mandatory rules
+    if (art.isMandatory) return true;
+    if (formData.establishmentId && art.mandatoryEstablishmentIds?.includes(formData.establishmentId)) {
+      return true;
+    }
+    return false;
+  };
+
+  // Auto-switch ART-02A and ART-02B when seniorityDate changes for CDI
+  useEffect(() => {
+    if (formData.contractType !== 'cdi') return;
+    const hasSeniority = Boolean(formData.seniorityDate?.trim());
+    const art2A = db.articles.find((a) => a.code === 'ART-02A');
+    const art2B = db.articles.find((a) => a.code === 'ART-02B');
+    if (!art2A && !art2B) return;
+
+    setSelectedArticleIds((prev) => {
+      let next = [...prev];
+      if (hasSeniority) {
+        if (art2A) next = next.filter((id) => id !== art2A.id);
+        if (art2B && !next.includes(art2B.id)) next.push(art2B.id);
+      } else {
+        if (art2B) next = next.filter((id) => id !== art2B.id);
+        if (art2A && !next.includes(art2A.id)) next.push(art2A.id);
+      }
+      return next;
+    });
+  }, [formData.seniorityDate, formData.contractType, db.articles]);
+
   // Auto-suggest articles when contract type, status, work time regime or establishment changes (unless applying a template / duplicated)
   useEffect(() => {
     if (isCustomSelectionRef.current) {
@@ -401,27 +500,13 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
       return;
     }
 
-    const compatible = db.articles.filter(
-      (art) =>
-        art.validContractTypes.includes(formData.contractType) &&
-        art.validStatuses.includes(formData.status) &&
-        (!art.workTimeTarget ||
-          art.workTimeTarget === 'les_deux' ||
-          art.workTimeTarget === formData.workTimeRegime) &&
-        (!art.validEstablishmentIds ||
-          art.validEstablishmentIds.length === 0 ||
-          !formData.establishmentId ||
-          art.validEstablishmentIds.includes(formData.establishmentId))
-    );
+    const compatible = db.articles.filter((art) => isArticleCompatibleWithProfile(art, formData));
     setSelectedArticleIds(compatible.map((a) => a.id));
-
-    const currentBlock = getBlockIdForContractType(formData.contractType);
-    setExpandedBlockIds([currentBlock, 'block-communs']);
   }, [formData.contractType, formData.status, formData.workTimeRegime, formData.establishmentId, db.articles]);
 
-  const toggleBlockExpanded = (blockId: string) => {
-    setExpandedBlockIds((prev) =>
-      prev.includes(blockId) ? prev.filter((id) => id !== blockId) : [...prev, blockId]
+  const toggleSectionExpanded = (sectionId: string) => {
+    setExpandedSectionIds((prev) =>
+      prev.includes(sectionId) ? prev.filter((id) => id !== sectionId) : [...prev, sectionId]
     );
   };
 
@@ -432,13 +517,13 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     );
   };
 
-  const handleSelectAllInBlock = (blockArticles: ContractArticle[]) => {
-    const idsToAdd = blockArticles.map((a) => a.id);
+  const handleSelectAllInList = (articlesList: ContractArticle[]) => {
+    const idsToAdd = articlesList.map((a) => a.id);
     setSelectedArticleIds((prev) => Array.from(new Set([...prev, ...idsToAdd])));
   };
 
-  const handleDeselectAllInBlock = (blockArticles: ContractArticle[]) => {
-    const idsToRemove = new Set(blockArticles.map((a) => a.id));
+  const handleDeselectAllInList = (articlesList: ContractArticle[]) => {
+    const idsToRemove = new Set(articlesList.map((a) => a.id));
     setSelectedArticleIds((prev) => prev.filter((id) => !idsToRemove.has(id)));
   };
 
@@ -452,24 +537,13 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     return idx !== -1 ? idx + 1 : null;
   };
 
-  const getBlockArticles = (block: ContractBlockConfig): ContractArticle[] => {
+  const getSectionArticles = (section: ContractSectionConfig): ContractArticle[] => {
     return db.articles
       .filter((art) => {
-        // Establishment compatibility filter
-        if (formData.establishmentId && art.validEstablishmentIds && art.validEstablishmentIds.length > 0) {
-          if (!art.validEstablishmentIds.includes(formData.establishmentId)) {
-            return false;
-          }
-        }
-        // Work time regime compatibility filter (TC / TP / les deux)
-        if (art.workTimeTarget && art.workTimeTarget !== 'les_deux' && art.workTimeTarget !== formData.workTimeRegime) {
+        if (filterToProfileOnly && !isArticleCompatibleWithProfile(art, formData)) {
           return false;
         }
-        if (block.filterFn(art)) return true;
-        if (block.typeKey && art.validContractTypes.includes(block.typeKey) && art.validContractTypes.length === 1) {
-          return true;
-        }
-        return false;
+        return section.filterFn(art);
       })
       .sort((a, b) => a.order - b.order);
   };
@@ -543,7 +617,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     });
 
     setSelectedArticleIds(tpl.articleIds);
-    setExpandedBlockIds([getBlockIdForContractType(tpl.contractType), 'block-communs']);
+    setExpandedSectionIds(CONTRACT_SECTIONS.map((s) => s.id));
   };
 
   const toggleArticleSelection = (articleId: string) => {
@@ -553,43 +627,17 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
   };
 
   const selectAllCompatibleArticles = () => {
-    const compatible = db.articles.filter(
-      (art) =>
-        art.validContractTypes.includes(formData.contractType) &&
-        art.validStatuses.includes(formData.status) &&
-        (!art.validEstablishmentIds ||
-          art.validEstablishmentIds.length === 0 ||
-          !formData.establishmentId ||
-          art.validEstablishmentIds.includes(formData.establishmentId))
-    );
+    const compatible = db.articles.filter((art) => isArticleCompatibleWithProfile(art, formData));
     setSelectedArticleIds(compatible.map((a) => a.id));
   };
 
-  // Legal safety check: applicable mandatory articles that are currently missing
-  const applicableArticles = db.articles.filter(
-    (art) =>
-      art.validContractTypes.includes(formData.contractType) &&
-      art.validStatuses.includes(formData.status) &&
-      (!art.validEstablishmentIds ||
-        art.validEstablishmentIds.length === 0 ||
-        !formData.establishmentId ||
-        art.validEstablishmentIds.includes(formData.establishmentId))
-  );
-
-  const isArticleMandatoryForCurrent = (art: ContractArticle): boolean => {
-    if (art.isMandatory) return true;
-    if (formData.establishmentId && art.mandatoryEstablishmentIds?.includes(formData.establishmentId)) {
-      return true;
-    }
-    return false;
-  };
-
-  const missingMandatoryArticles = applicableArticles.filter(
+  // Missing mandatory articles check (filtered strictly for this contract & profile)
+  const missingMandatoryArticles = db.articles.filter(
     (art) => isArticleMandatoryForCurrent(art) && !selectedArticleIds.includes(art.id)
   );
 
   const handleAddAllMandatoryArticles = () => {
-    const mandatoryIds = applicableArticles
+    const mandatoryIds = db.articles
       .filter((art) => isArticleMandatoryForCurrent(art))
       .map((art) => art.id);
     setSelectedArticleIds((prev) => Array.from(new Set([...prev, ...mandatoryIds])));
@@ -647,14 +695,168 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     setTimeout(() => setSaveSuccessMsg(null), 3500);
   };
 
-  // Filter blocks to show depending on blockViewMode
-  const activeBlockId = getBlockIdForContractType(formData.contractType);
-  const blocksToDisplay = CONTRACT_BLOCKS.filter((block) => {
-    if (blockViewMode === 'focused') {
-      return block.id === activeBlockId || block.id === 'block-communs';
-    }
-    return true;
-  });
+  const renderArticleCard = (art: ContractArticle) => {
+    const isSelected = selectedArticleIds.includes(art.id);
+    const seqNum = getArticleSequenceNumber(art.id);
+    const isPreviewExpanded = expandedPreviewIds.includes(art.id);
+    const displayTitle = stripArticlePrefix(art.title);
+    const isMandatory = isArticleMandatoryForCurrent(art);
+    const isCompatible = isArticleCompatibleWithProfile(art, formData);
+
+    // Contextual badge info for the 4 dimensions
+    const isContractTypeMatch = art.validContractTypes.includes(formData.contractType);
+    const isStatusMatch = art.validStatuses.includes(formData.status);
+    const isEtabMatch = !art.validEstablishmentIds || art.validEstablishmentIds.length === 0 || !formData.establishmentId || art.validEstablishmentIds.includes(formData.establishmentId);
+    const isWorkTimeMatch = !art.workTimeTarget || art.workTimeTarget === 'les_deux' || art.workTimeTarget === formData.workTimeRegime;
+
+    return (
+      <div
+        key={art.id}
+        onClick={() => toggleArticleSelection(art.id)}
+        className={`p-2.5 rounded-lg border text-xs cursor-pointer transition ${
+          isSelected
+            ? 'bg-white border-blue-400 shadow-2xs ring-1 ring-blue-200'
+            : !isCompatible
+            ? 'bg-slate-50/80 border-slate-200 text-slate-500 hover:bg-white'
+            : 'bg-white/80 border-slate-200 hover:bg-white text-slate-700'
+        }`}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          {/* Main Title & Checkbox */}
+          <div className="flex items-center space-x-2 flex-1 min-w-0">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => {}} // controlled via parent container click
+              className="rounded text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 cursor-pointer shrink-0"
+            />
+
+            {/* Incremental sequential number badge */}
+            {isSelected && seqNum !== null ? (
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-600 text-white font-mono shrink-0 shadow-2xs">
+                Art. {seqNum}
+              </span>
+            ) : (
+              <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                {art.code}
+              </span>
+            )}
+
+            <div className="min-w-0 flex-1">
+              <span className={`font-semibold truncate block ${isSelected ? 'text-slate-900 font-bold' : 'text-slate-700'}`}>
+                {displayTitle}
+              </span>
+              <span className="text-[10px] text-slate-400 line-clamp-1">
+                {art.category}
+              </span>
+            </div>
+          </div>
+
+          {/* 4 Dimensions Badges & Requirement */}
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0 self-start sm:self-center">
+            {/* Dimension 1: Contrats */}
+            <span
+              className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                isContractTypeMatch
+                  ? 'bg-blue-50 text-blue-700 border-blue-200'
+                  : 'bg-slate-100 text-slate-500 border-slate-200'
+              }`}
+              title={`Types de contrat valides : ${art.validContractTypes.map((t) => CONTRACT_TYPE_LABELS[t] || t).join(', ')}`}
+            >
+              {art.validContractTypes.length === 1
+                ? CONTRACT_TYPE_LABELS[art.validContractTypes[0]] || art.validContractTypes[0]
+                : art.validContractTypes.length >= 4
+                ? 'Tous contrats'
+                : art.validContractTypes.map((t) => (t === 'cdi' ? 'CDI' : t === 'cdd' ? 'CDD' : t)).join('/')}
+            </span>
+
+            {/* Dimension 2: Statut */}
+            <span
+              className={`text-[9px] font-bold capitalize px-1.5 py-0.5 rounded border ${
+                isStatusMatch
+                  ? 'bg-amber-50 text-amber-800 border-amber-200'
+                  : 'bg-slate-100 text-slate-500 border-slate-200'
+              }`}
+              title={`Statuts applicables : ${art.validStatuses.map((s) => EMPLOYEE_STATUS_LABELS[s] || s).join(', ')}`}
+            >
+              {art.validStatuses.length === 1
+                ? EMPLOYEE_STATUS_LABELS[art.validStatuses[0]] || art.validStatuses[0]
+                : art.validStatuses.length >= 5
+                ? 'Tous statuts'
+                : art.validStatuses.map((s) => s.slice(0, 4)).join(', ')}
+            </span>
+
+            {/* Dimension 3: Établissement (si spécifique) */}
+            {art.validEstablishmentIds && art.validEstablishmentIds.length > 0 && art.validEstablishmentIds.length < db.establishments.length && (
+              <span
+                className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                  isEtabMatch
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    : 'bg-slate-100 text-slate-500 border-slate-200'
+                }`}
+                title="Clause spécifique à certains établissements"
+              >
+                {art.validEstablishmentIds.length === 1
+                  ? db.establishments.find((e) => e.id === art.validEstablishmentIds![0])?.shortName || 'Site spécifique'
+                  : `${art.validEstablishmentIds.length} sites`}
+              </span>
+            )}
+
+            {/* Dimension 4: Régime de travail (TC / TP) */}
+            {art.workTimeTarget && art.workTimeTarget !== 'les_deux' && (
+              <span
+                className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                  art.workTimeTarget === 'temps_plein'
+                    ? isWorkTimeMatch
+                      ? 'bg-blue-100 text-blue-800 border-blue-300'
+                      : 'bg-slate-100 text-slate-500 border-slate-200'
+                    : isWorkTimeMatch
+                    ? 'bg-purple-100 text-purple-800 border-purple-300'
+                    : 'bg-slate-100 text-slate-500 border-slate-200'
+                }`}
+                title={art.workTimeTarget === 'temps_plein' ? 'Temps Complet uniquement' : 'Temps Partiel uniquement'}
+              >
+                {art.workTimeTarget === 'temps_plein' ? 'TC seul' : 'TP seul'}
+              </span>
+            )}
+
+            {/* Obligatoire badge strictly computed for active contract */}
+            {isMandatory && (
+              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
+                ★ Obligatoire
+              </span>
+            )}
+
+            {!isCompatible && (
+              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+                Non applicable
+              </span>
+            )}
+
+            {/* Preview toggle */}
+            <button
+              type="button"
+              onClick={(e) => toggleArticlePreview(art.id, e)}
+              className="text-slate-400 hover:text-blue-600 p-0.5"
+              title={isPreviewExpanded ? 'Masquer le texte' : 'Aperçu du texte'}
+            >
+              {isPreviewExpanded ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Text Preview */}
+        {isPreviewExpanded && (
+          <div className="mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded leading-relaxed font-sans animate-in fade-in">
+            <div className="text-[10px] text-slate-400 font-mono mb-1">
+              Code: {art.code} • Ordre contractuel: #{art.order}
+            </div>
+            {art.content.replace(/\{\{[^}]+\}\}/g, '...')}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
@@ -1429,7 +1631,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
               </div>
 
               {/* Dates & Conditions */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                     Date de début / prise d'effet *
@@ -1441,7 +1643,49 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                     className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden font-medium"
                   />
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    Prise d'effet du contrat
+                  </span>
                 </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                      Reprise d'ancienneté
+                    </label>
+                    {formData.seniorityDate ? (
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, seniorityDate: '' })}
+                        className="text-[10px] text-rose-600 hover:text-rose-800 font-bold cursor-pointer"
+                        title="Supprimer la date de reprise"
+                      >
+                        Effacer
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 font-semibold">(Facultatif)</span>
+                    )}
+                  </div>
+                  <input
+                    type="date"
+                    value={formData.seniorityDate || ''}
+                    onChange={(e) => setFormData({ ...formData, seniorityDate: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden font-medium text-slate-800"
+                  />
+                  <div className="mt-1 text-[10px]">
+                    {formData.seniorityDate ? (
+                      <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                        <Check className="w-3 h-3 text-emerald-600 shrink-0" />
+                        <span>Clause <strong>ART-02B</strong> obligatoire</span>
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">
+                        Sans reprise ➔ clause <strong>ART-02A</strong> obligatoire
+                      </span>
+                    )}
+                  </div>
+                </div>
+
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
@@ -1466,7 +1710,11 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                     placeholder={formData.workTimeRegime === 'temps_partiel' ? 'Facultatif (ex: 20, 24, 28...)' : 'Facultatif (défaut : 35)'}
                     className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
                   />
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    {formData.workTimeRegime === 'temps_partiel' ? 'Temps Partiel' : 'Temps Complet (35h)'}
+                  </span>
                 </div>
+
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
@@ -1545,183 +1793,240 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
               </div>
             </div>
           </div>
-        {/* SECTION 4: Briques Articles & Clauses du Contrat (Sous le formulaire) */}
+        {/* SECTION 4: Briques Articles & Clauses du Contrat */}
         <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
-            {/* Header selection articles */}
-            <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Layers className="w-4 h-4 text-emerald-400" />
-                <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider">
-                    4. Clauses & Briques Articles du Contrat
-                  </h3>
+          {/* Header selection articles */}
+          <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Layers className="w-4 h-4 text-emerald-400" />
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider">
+                  4. Clauses & Briques Articles du Contrat
+                </h3>
+              </div>
+            </div>
+
+            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+              {selectedArticleIds.length} clause{selectedArticleIds.length > 1 ? 's' : ''} sélectionnée{selectedArticleIds.length > 1 ? 's' : ''}
+            </span>
+          </div>
+
+          {/* Active 4-Dimensions Profile Banner */}
+          <div className="p-3.5 bg-blue-50/70 border-b border-blue-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+              <div className="space-y-1">
+                <div className="text-[10.5px] font-extrabold uppercase tracking-wider text-blue-900 flex items-center gap-1.5">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Profil sélectionné pour ce contrat (4 dimensions) :</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white border border-blue-200 text-blue-900 font-bold shadow-2xs">
+                    <span className="text-slate-400 mr-1 text-[10px]">Contrat :</span>
+                    {CONTRACT_TYPE_LABELS[formData.contractType]}
+                  </span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white border border-amber-200 text-amber-900 font-bold shadow-2xs">
+                    <span className="text-slate-400 mr-1 text-[10px]">Statut :</span>
+                    {EMPLOYEE_STATUS_LABELS[formData.status]}
+                  </span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white border border-emerald-200 text-emerald-900 font-bold shadow-2xs">
+                    <span className="text-slate-400 mr-1 text-[10px]">Site :</span>
+                    {currentEst?.shortName || currentEst?.name}
+                  </span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-white border border-purple-200 text-purple-900 font-bold shadow-2xs">
+                    <span className="text-slate-400 mr-1 text-[10px]">Horaire :</span>
+                    {WORK_TIME_REGIME_LABELS[formData.workTimeRegime]}
+                  </span>
+                  {formData.seniorityDate ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-100 border border-emerald-300 text-emerald-900 font-bold shadow-2xs">
+                      <Calendar className="w-3 h-3 mr-1 text-emerald-700" />
+                      Reprise : {formatDateFrench(formData.seniorityDate)}
+                      <span className="ml-1 text-[10px] text-emerald-800 font-mono">(ART-02B requis)</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 font-medium shadow-2xs text-[11px]">
+                      Sans reprise ancienneté
+                      <span className="ml-1 text-[10px] text-blue-700 font-mono">(ART-02A requis)</span>
+                    </span>
+                  )}
                 </div>
               </div>
 
-              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
-                {selectedArticleIds.length} clause{selectedArticleIds.length > 1 ? 's' : ''} sélectionnée{selectedArticleIds.length > 1 ? 's' : ''}
-              </span>
+              <div className="shrink-0 self-start sm:self-center">
+                <span className="text-[11px] font-semibold text-blue-800 bg-white/80 px-2 py-1 rounded-lg border border-blue-200">
+                  {db.articles.filter((a) => isArticleCompatibleWithProfile(a, formData)).length} clauses adaptées disponibles
+                </span>
+              </div>
             </div>
+          </div>
 
-            {/* Legal Safety Banner: Alert if mandatory clauses are missing */}
-            {missingMandatoryArticles.length > 0 && (
-              <div className="p-3 bg-rose-50 border-b border-rose-200 text-rose-900 flex flex-col gap-2">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <div className="text-xs font-bold text-rose-800">
-                      {missingMandatoryArticles.length} clause(s) obligatoire(s) non cochée(s)
-                    </div>
-                    <p className="text-[11px] text-rose-700 mt-0.5 leading-snug">
-                      Pour éviter tout risque d'illicéité ou de requalification, incluez : {missingMandatoryArticles.map(a => stripArticlePrefix(a.title)).join(', ')}.
-                    </p>
+          {/* Legal Safety Banner: Alert if mandatory clauses are missing */}
+          {missingMandatoryArticles.length > 0 && (
+            <div className="p-3 bg-rose-50 border-b border-rose-200 text-rose-900 flex flex-col gap-2 animate-in fade-in">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <div className="text-xs font-bold text-rose-800">
+                    {missingMandatoryArticles.length} clause(s) obligatoire(s) non cochée(s) pour ce profil
                   </div>
+                  <p className="text-[11px] text-rose-700 mt-0.5 leading-snug">
+                    Pour la conformité juridique du contrat : {missingMandatoryArticles.map((a) => `${stripArticlePrefix(a.title)} (${a.code})`).join(', ')}.
+                  </p>
                 </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddAllMandatoryArticles}
+                className="self-start px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold rounded-lg shadow-2xs transition flex items-center gap-1 cursor-pointer"
+              >
+                <Check className="w-3 h-3" />
+                <span>Cocher les clauses obligatoires manquantes</span>
+              </button>
+            </div>
+          )}
+
+          {/* View Controls: Filter profile vs All + Grouping mode + Search */}
+          <div className="p-3 bg-slate-50 border-b border-slate-200 space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              {/* Filter mode button group */}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setFilterToProfileOnly(true)}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+                      filterToProfileOnly
+                        ? 'bg-blue-600 text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Clauses adaptées au profil</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterToProfileOnly(false)}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+                      !filterToProfileOnly
+                        ? 'bg-blue-600 text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>Tout le catalogue ({db.articles.length})</span>
+                  </button>
+                </div>
+
+                {/* Grouping mode */}
+                <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setGroupingMode('sections')}
+                    className={`px-2 py-1 rounded-md text-[10.5px] font-semibold transition ${
+                      groupingMode === 'sections'
+                        ? 'bg-slate-800 text-white'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Par Rubriques
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGroupingMode('requirements')}
+                    className={`px-2 py-1 rounded-md text-[10.5px] font-semibold transition ${
+                      groupingMode === 'requirements'
+                        ? 'bg-slate-800 text-white'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Par Niveau d'Exigence
+                  </button>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center space-x-2 text-[11px]">
                 <button
                   type="button"
-                  onClick={handleAddAllMandatoryArticles}
-                  className="self-start px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold rounded-lg shadow-2xs transition flex items-center gap-1"
+                  onClick={selectAllCompatibleArticles}
+                  className="text-blue-600 hover:underline font-semibold cursor-pointer"
                 >
-                  <Check className="w-3 h-3" />
-                  <span>Cocher les clauses obligatoires manquantes</span>
+                  Tout cocher (profil)
                 </button>
-              </div>
-            )}
-
-            {/* Clean View Controls: Focused vs All Blocks + Search */}
-            <div className="p-3 bg-slate-50 border-b border-slate-200 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setBlockViewMode('focused')}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition ${
-                      blockViewMode === 'focused'
-                        ? 'bg-blue-600 text-white shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Blocs actifs ({CONTRACT_TYPE_LABELS[formData.contractType]} + Communes)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBlockViewMode('all')}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition ${
-                      blockViewMode === 'all'
-                        ? 'bg-blue-600 text-white shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Tous les 6 blocs
-                  </button>
-                </div>
-
-                <div className="flex items-center space-x-2 text-[11px]">
-                  <button
-                    type="button"
-                    onClick={selectAllCompatibleArticles}
-                    className="text-blue-600 hover:underline font-semibold"
-                  >
-                    Tout cocher
-                  </button>
-                  <span className="text-slate-300">•</span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedArticleIds([])}
-                    className="text-slate-500 hover:underline"
-                  >
-                    Décocher
-                  </button>
-                </div>
-              </div>
-
-              {/* Quick Search */}
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-                <input
-                  type="text"
-                  value={searchArticleQuery}
-                  onChange={(e) => setSearchArticleQuery(e.target.value)}
-                  placeholder="Filtrer une clause par mot-clé (ex: préavis, sécurité, essai)..."
-                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
-                />
+                <span className="text-slate-300">•</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedArticleIds([])}
+                  className="text-slate-500 hover:underline cursor-pointer"
+                >
+                  Décocher tout
+                </button>
               </div>
             </div>
 
-            {/* Blocks & Articles List */}
-            <div className="p-3 max-h-[500px] overflow-y-auto space-y-2.5 bg-slate-100/40">
-              {blocksToDisplay.map((block) => {
-                let blockArticles = getBlockArticles(block);
+            {/* Quick Search */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+              <input
+                type="text"
+                value={searchArticleQuery}
+                onChange={(e) => setSearchArticleQuery(e.target.value)}
+                placeholder="Filtrer une clause par mot-clé (ex: préavis, ancienneté, sécurité, essai, SAEIV)..."
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+              />
+            </div>
+          </div>
+
+          {/* Articles Container */}
+          <div className="p-3 max-h-[520px] overflow-y-auto space-y-3 bg-slate-100/40">
+            {groupingMode === 'sections' ? (
+              /* GROUPING BY CONTRACT SECTIONS (1 TO 6) */
+              CONTRACT_SECTIONS.map((section) => {
+                let sectionArticles = getSectionArticles(section);
                 if (searchArticleQuery.trim()) {
                   const q = searchArticleQuery.toLowerCase();
-                  blockArticles = blockArticles.filter(
-                    (a) => a.title.toLowerCase().includes(q) || a.code.toLowerCase().includes(q) || a.content.toLowerCase().includes(q)
+                  sectionArticles = sectionArticles.filter(
+                    (a) =>
+                      a.title.toLowerCase().includes(q) ||
+                      a.code.toLowerCase().includes(q) ||
+                      a.content.toLowerCase().includes(q)
                   );
                 }
 
-                const selectedInBlock = blockArticles.filter((a) => selectedArticleIds.includes(a.id));
-                const isExpanded = expandedBlockIds.includes(block.id);
-                const isCurrentType = block.typeKey === formData.contractType;
-                const isCommon = block.id === 'block-communs';
+                if (sectionArticles.length === 0) return null;
 
-                if (searchArticleQuery.trim() && blockArticles.length === 0) {
-                  return null;
-                }
+                const selectedInSec = sectionArticles.filter((a) => selectedArticleIds.includes(a.id));
+                const isExpanded = expandedSectionIds.includes(section.id);
 
                 return (
                   <div
-                    key={block.id}
-                    className={`rounded-xl border transition shadow-2xs overflow-hidden ${
-                      isCurrentType
-                        ? 'border-blue-300 bg-white'
-                        : isExpanded
-                        ? 'border-slate-300 bg-white'
-                        : 'border-slate-200 bg-white/90'
-                    }`}
+                    key={section.id}
+                    className="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden"
                   >
-                    {/* Compact Block Header */}
+                    {/* Section Header */}
                     <div
-                      onClick={() => toggleBlockExpanded(block.id)}
-                      className={`px-3.5 py-2.5 flex items-center justify-between cursor-pointer select-none transition ${
-                        isCurrentType
-                          ? 'bg-blue-50/50 hover:bg-blue-50'
-                          : 'hover:bg-slate-50'
-                      }`}
+                      onClick={() => toggleSectionExpanded(section.id)}
+                      className="px-3.5 py-2.5 flex items-center justify-between cursor-pointer select-none bg-slate-50/70 hover:bg-slate-50 transition"
                     >
                       <div className="flex items-center space-x-2.5">
-                        <span
-                          className={`w-5 h-5 rounded-md flex items-center justify-center font-bold text-[10px] ${
-                            isCurrentType
-                              ? 'bg-blue-600 text-white'
-                              : isCommon
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-slate-200 text-slate-700'
-                          }`}
-                        >
-                          {block.shortLabel.slice(0, 3)}
+                        <span className="w-5 h-5 rounded-md flex items-center justify-center font-bold text-[10px] bg-slate-800 text-white">
+                          {section.id.split('-')[1]?.slice(0, 2).toUpperCase() || '§'}
                         </span>
                         <div>
                           <div className="flex items-center gap-1.5">
-                            <h4 className="text-xs font-bold text-slate-900">{block.title}</h4>
-                            {isCurrentType && (
-                              <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.2 rounded bg-blue-600 text-white shadow-2xs">
-                                Actif
-                              </span>
-                            )}
+                            <h4 className="text-xs font-bold text-slate-900">{section.title}</h4>
                           </div>
-                          <p className="text-[10px] text-slate-500 line-clamp-1">{block.description}</p>
+                          <p className="text-[10px] text-slate-500 line-clamp-1">{section.description}</p>
                         </div>
                       </div>
 
                       <div className="flex items-center space-x-2">
                         <span
                           className={`text-[11px] font-bold px-2 py-0.5 rounded-full font-mono ${
-                            selectedInBlock.length > 0
+                            selectedInSec.length > 0
                               ? 'bg-emerald-100 text-emerald-800'
                               : 'bg-slate-100 text-slate-500'
                           }`}
                         >
-                          {selectedInBlock.length}/{blockArticles.length}
+                          {selectedInSec.length}/{sectionArticles.length}
                         </span>
                         {isExpanded ? (
                           <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
@@ -1731,99 +2036,148 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                       </div>
                     </div>
 
-                    {/* Block Articles List when Expanded */}
+                    {/* Articles list */}
                     {isExpanded && (
-                      <div className="p-2.5 border-t border-slate-100 bg-slate-50/40 space-y-1.5">
-                        {blockArticles.length === 0 ? (
-                          <p className="text-xs text-slate-400 italic py-2 text-center">
-                            Aucune clause correspondante.
-                          </p>
-                        ) : (
-                          blockArticles.map((art) => {
-                            const isSelected = selectedArticleIds.includes(art.id);
-                            const seqNum = getArticleSequenceNumber(art.id);
-                            const isPreviewExpanded = expandedPreviewIds.includes(art.id);
-                            const displayTitle = stripArticlePrefix(art.title);
+                      <div className="p-2.5 border-t border-slate-100 bg-slate-50/30 space-y-1.5">
+                        <div className="flex items-center justify-between px-1 pb-1 text-[10.5px]">
+                          <span className="text-slate-400">{sectionArticles.length} clause(s) dans cette rubrique</span>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectAllInList(sectionArticles);
+                              }}
+                              className="text-blue-600 hover:underline font-semibold cursor-pointer"
+                            >
+                              Tout cocher
+                            </button>
+                            <span className="text-slate-300">•</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeselectAllInList(sectionArticles);
+                              }}
+                              className="text-slate-400 hover:underline cursor-pointer"
+                            >
+                              Décocher
+                            </button>
+                          </div>
+                        </div>
 
-                            return (
-                              <div
-                                key={art.id}
-                                onClick={() => toggleArticleSelection(art.id)}
-                                className={`p-2.5 rounded-lg border text-xs cursor-pointer transition ${
-                                  isSelected
-                                    ? 'bg-white border-blue-400 shadow-2xs ring-1 ring-blue-200'
-                                    : 'bg-white/80 border-slate-200 hover:bg-white text-slate-600'
-                                }`}
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="flex items-center space-x-2 flex-1 min-w-0">
-                                    <input
-                                      type="checkbox"
-                                      checked={isSelected}
-                                      onChange={() => {}} // controlled via parent
-                                      className="rounded text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 cursor-pointer shrink-0"
-                                    />
-
-                                    {/* Incremental sequential number badge */}
-                                    {isSelected && seqNum !== null ? (
-                                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-600 text-white font-mono shrink-0">
-                                        Art. {seqNum}
-                                      </span>
-                                    ) : (
-                                      <span className="text-[10px] text-slate-400 font-mono shrink-0">
-                                        {art.code}
-                                      </span>
-                                    )}
-
-                                    <span className="font-semibold text-slate-900 truncate">
-                                      {displayTitle}
-                                    </span>
-                                  </div>
-
-                                  {/* Badges: Work time & Obligatoire */}
-                                  <div className="flex items-center space-x-1.5 shrink-0">
-                                    {art.workTimeTarget === 'temps_plein' && (
-                                      <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
-                                        TC
-                                      </span>
-                                    )}
-                                    {art.workTimeTarget === 'temps_partiel' && (
-                                      <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
-                                        TP
-                                      </span>
-                                    )}
-                                    {(art.isMandatory || (formData.establishmentId && art.mandatoryEstablishmentIds?.includes(formData.establishmentId))) && (
-                                      <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
-                                        Obligatoire
-                                      </span>
-                                    )}
-                                    <button
-                                      type="button"
-                                      onClick={(e) => toggleArticlePreview(art.id, e)}
-                                      className="text-slate-400 hover:text-blue-600 p-0.5"
-                                      title={isPreviewExpanded ? 'Masquer le texte' : 'Aperçu du texte'}
-                                    >
-                                      {isPreviewExpanded ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {/* Text Preview (Hidden by default to keep interface épurée) */}
-                                {isPreviewExpanded && (
-                                  <div className="mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-600 bg-slate-50 p-2 rounded leading-relaxed font-sans animate-in fade-in">
-                                    {art.content.replace(/\{\{[^}]+\}\}/g, '...')}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })
-                        )}
+                        {sectionArticles.map((art) => renderArticleCard(art))}
                       </div>
                     )}
                   </div>
                 );
-              })}
-            </div>
+              })
+            ) : (
+              /* GROUPING BY REQUIREMENT LEVEL (Obligatoire / Recommandé / Hors profil) */
+              [
+                {
+                  id: 'req-mandatory',
+                  title: '1. Clauses Obligatoires pour ce Contrat',
+                  description: 'Clauses requises légalement, conventionnellement ou selon l’ancienneté',
+                  badgeColor: 'rose',
+                  articles: db.articles.filter((art) => isArticleMandatoryForCurrent(art)),
+                },
+                {
+                  id: 'req-recommended',
+                  title: '2. Clauses Recommandées & Spécificités (Métier & Établissement)',
+                  description: 'Clauses adaptées au statut, au réseau de l’établissement et aux horaires',
+                  badgeColor: 'blue',
+                  articles: db.articles.filter(
+                    (art) =>
+                      isArticleCompatibleWithProfile(art, formData) &&
+                      !isArticleMandatoryForCurrent(art)
+                  ),
+                },
+                ...(!filterToProfileOnly
+                  ? [
+                      {
+                        id: 'req-other',
+                        title: '3. Autres Clauses du Référentiel (Hors Profil Actuel)',
+                        description: 'Clauses destinées à d’autres statuts, d’autres types de contrats ou d’autres sites',
+                        badgeColor: 'slate',
+                        articles: db.articles.filter(
+                          (art) => !isArticleCompatibleWithProfile(art, formData)
+                        ),
+                      },
+                    ]
+                  : []),
+              ].map((grp) => {
+                let grpArticles = grp.articles;
+                if (searchArticleQuery.trim()) {
+                  const q = searchArticleQuery.toLowerCase();
+                  grpArticles = grpArticles.filter(
+                    (a) =>
+                      a.title.toLowerCase().includes(q) ||
+                      a.code.toLowerCase().includes(q) ||
+                      a.content.toLowerCase().includes(q)
+                  );
+                }
+
+                if (grpArticles.length === 0) return null;
+
+                const selectedInGrp = grpArticles.filter((a) => selectedArticleIds.includes(a.id));
+                const isExpanded = expandedSectionIds.includes(grp.id);
+
+                return (
+                  <div
+                    key={grp.id}
+                    className="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden"
+                  >
+                    <div
+                      onClick={() => toggleSectionExpanded(grp.id)}
+                      className="px-3.5 py-2.5 flex items-center justify-between cursor-pointer select-none bg-slate-50/70 hover:bg-slate-50 transition"
+                    >
+                      <div className="flex items-center space-x-2.5">
+                        <span
+                          className={`w-5 h-5 rounded-md flex items-center justify-center font-bold text-[10px] ${
+                            grp.id === 'req-mandatory'
+                              ? 'bg-rose-600 text-white'
+                              : grp.id === 'req-recommended'
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-slate-400 text-white'
+                          }`}
+                        >
+                          {grp.id === 'req-mandatory' ? '!' : grp.id === 'req-recommended' ? '★' : '•'}
+                        </span>
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-900">{grp.title}</h4>
+                          <p className="text-[10px] text-slate-500 line-clamp-1">{grp.description}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={`text-[11px] font-bold px-2 py-0.5 rounded-full font-mono ${
+                            selectedInGrp.length > 0
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-slate-100 text-slate-500'
+                          }`}
+                        >
+                          {selectedInGrp.length}/{grpArticles.length}
+                        </span>
+                        {isExpanded ? (
+                          <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                        )}
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="p-2.5 border-t border-slate-100 bg-slate-50/30 space-y-1.5">
+                        {grpArticles.map((art) => renderArticleCard(art))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
 
             {/* Incremental Order Ribbon of the final contract */}
             {sortedSelectedArticles.length > 0 && (
