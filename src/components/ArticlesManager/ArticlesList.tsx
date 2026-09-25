@@ -56,6 +56,18 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterWorkTime, setFilterWorkTime] = useState<string>('all');
   const [filterEstablishment, setFilterEstablishment] = useState<string>('all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+
+  const availableCategories = React.useMemo(() => {
+    const set = new Set<string>();
+    articles.forEach((a) => {
+      const cat = a.category?.trim();
+      if (cat) set.add(cat);
+    });
+    // Standard default categories as suggestions
+    ['Général', 'Poste & Missions', 'Rémunération', 'Temps de travail', 'Transport & Sécurité', 'Spécifique Encadrement', 'Mutation', 'Avenant'].forEach((c) => set.add(c));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
+  }, [articles]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -255,7 +267,11 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
       art.validEstablishmentIds.length === 0 ||
       art.validEstablishmentIds.includes(filterEstablishment);
 
-    return matchesSearch && matchesType && matchesStatus && matchesWorkTime && matchesEstablishment;
+    const matchesCategory =
+      filterCategory === 'all' ||
+      (art.category?.trim() || 'Général') === filterCategory;
+
+    return matchesSearch && matchesType && matchesStatus && matchesWorkTime && matchesEstablishment && matchesCategory;
   });
 
   return (
@@ -369,6 +385,23 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
               </select>
             </div>
           )}
+
+          <div className="flex items-center gap-1.5 text-xs text-slate-600">
+            <Tag className="w-3.5 h-3.5 text-slate-400" />
+            <span>Catégorie :</span>
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 focus:outline-hidden"
+            >
+              <option value="all">Toutes les catégories</option>
+              {availableCategories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -583,21 +616,27 @@ export const ArticlesList: React.FC<ArticlesListProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                      Catégorie
+                      Catégorie (Rubrique) *
                     </label>
-                    <select
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
-                    >
-                      <option value="Général">Général</option>
-                      <option value="Poste & Missions">Poste & Missions</option>
-                      <option value="Rémunération">Rémunération</option>
-                      <option value="Temps de travail">Temps de travail</option>
-                      <option value="Transport & Sécurité">Transport & Sécurité</option>
-                      <option value="Spécifique Encadrement">Spécifique Encadrement</option>
-                      <option value="Mutation">Mutation</option>
-                    </select>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        list="article-category-datalist"
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        placeholder="ex: Général, Rémunération, Sécurité et transport..."
+                        className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                      />
+                      <datalist id="article-category-datalist">
+                        {availableCategories.map((c) => (
+                          <option key={c} value={c} />
+                        ))}
+                      </datalist>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Cette catégorie servira directement de rubrique de regroupement lors de la création d'un contrat.
+                    </p>
                   </div>
 
                   <div>

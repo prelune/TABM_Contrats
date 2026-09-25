@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   FileText, 
   User, 
@@ -48,113 +48,123 @@ import { CONTRACT_TYPE_LABELS, EMPLOYEE_STATUS_LABELS } from '../../data/default
 import { calculateSalary, formatEuro, stripArticlePrefix, computeDefaultTrialPeriod, formatDateFrench } from '../../utils/contractCompiler';
 import { ContractPreviewModal } from './ContractPreviewModal';
 
-export interface ContractSectionConfig {
-  id: string;
-  title: string;
-  shortLabel: string;
-  description: string;
-  badgeColor: string;
-  filterFn: (art: ContractArticle) => boolean;
+export interface ArticleCategoryStyle {
+  bg: string;
+  hoverBg: string;
+  text: string;
+  border: string;
+  tag: string;
+  badge: string;
+  iconColor: string;
 }
 
-export const CONTRACT_SECTIONS: ContractSectionConfig[] = [
-  {
-    id: 'sec-engagement',
-    title: '1. Engagement, Prise d’effet & Période d’essai',
-    shortLabel: 'Engagement & Durée',
-    description: 'Engagement légal, prise d’effet CDI / terme CDD, période d’essai et reprise d’ancienneté',
-    badgeColor: 'blue',
-    filterFn: (art) =>
-      art.code.startsWith('ART-01') ||
-      art.code.startsWith('ART-02') ||
-      art.id.includes('engagement') ||
-      art.id.includes('prise-effet') ||
-      art.id.includes('duree') ||
-      art.id.includes('anciennete') ||
-      art.category === 'Avenant' ||
-      art.category === 'Mutation',
-  },
-  {
-    id: 'sec-fonctions-lieu',
-    title: '2. Fonctions, Attributions & Lieu de Travail',
-    shortLabel: 'Poste & Mobilité',
-    description: 'Attributions inhérentes à la qualification, dépôt de rattachement et clause de mobilité géographique',
-    badgeColor: 'amber',
-    filterFn: (art) =>
-      art.code === 'ART-03' ||
-      art.code === 'ART-04' ||
-      art.category === 'Poste & Missions' ||
-      art.id.includes('fonctions') ||
-      art.id.includes('lieu'),
-  },
-  {
-    id: 'sec-temps-travail',
-    title: '3. Organisation & Durée du Temps de Travail',
-    shortLabel: 'Temps de travail',
-    description: 'Horaires contractuels (temps plein 35h ou modalités spécifiques au temps partiel)',
-    badgeColor: 'purple',
-    filterFn: (art) =>
-      art.code.startsWith('ART-05') ||
-      art.category === 'Temps de travail' ||
-      art.id.includes('temps') ||
-      art.id.includes('duree-travail'),
-  },
-  {
-    id: 'sec-remuneration',
-    title: '4. Rémunération, Coefficient & Primes',
-    shortLabel: 'Rémunération',
-    description: 'Calcul lié au point d’entreprise ou salaire brut d’établissement et primes conventionnelles',
-    badgeColor: 'emerald',
-    filterFn: (art) =>
-      art.code.startsWith('ART-06') ||
-      art.category === 'Rémunération' ||
-      art.id.includes('remuneration'),
-  },
-  {
-    id: 'sec-transport-securite',
-    title: '5. Réglementation Transport, Conduite & Spécificités Sites',
-    shortLabel: 'Transport & Sécurité',
-    description: 'Permis D, FIMO/FCO, carte conducteur, sécurité routière et clauses d’exploitation (Urbain SAEIV, RSE Tachygraphe, Grand Tourisme)',
-    badgeColor: 'teal',
-    filterFn: (art) =>
-      art.code.startsWith('ART-07') ||
-      art.code.startsWith('ART-08') ||
-      art.code.startsWith('ART-09') ||
-      art.code.startsWith('ART-10') ||
-      art.code.startsWith('ART-11') ||
-      art.category.includes('Transport') ||
-      art.category.includes('Sécurité') ||
-      art.category.includes('Établissement') ||
-      art.category.includes('Lignes') ||
-      art.category.includes('Tourisme'),
-  },
-  {
-    id: 'sec-dispositions-generales',
-    title: '6. Confidentialité, Protection Sociale & Clauses Spéciales',
-    shortLabel: 'Dispositions Générales',
-    description: 'Obligation de loyauté, secret professionnel, non-concurrence (cadre) et mutuelle/prévoyance',
-    badgeColor: 'indigo',
-    filterFn: (art) =>
-      art.code.startsWith('ART-12') ||
-      art.code.startsWith('ART-13') ||
-      art.code.startsWith('ART-14') ||
-      art.id.includes('secret') ||
-      art.id.includes('non-concurrence') ||
-      art.id.includes('prevoyance') ||
-      art.category.includes('Encadrement') ||
-      (!art.code.startsWith('ART-01') &&
-       !art.code.startsWith('ART-02') &&
-       !art.code.startsWith('ART-03') &&
-       !art.code.startsWith('ART-04') &&
-       !art.code.startsWith('ART-05') &&
-       !art.code.startsWith('ART-06') &&
-       !art.code.startsWith('ART-07') &&
-       !art.code.startsWith('ART-08') &&
-       !art.code.startsWith('ART-09') &&
-       !art.code.startsWith('ART-10') &&
-       !art.code.startsWith('ART-11')),
-  },
-];
+export interface ArticleCategoryGroup {
+  id: string;
+  name: string;
+  minOrder: number;
+  style: ArticleCategoryStyle;
+}
+
+export const getCategoryStyle = (categoryName: string): ArticleCategoryStyle => {
+  const norm = categoryName.toLowerCase().trim();
+  if (norm.includes('général') || norm.includes('general') || norm.includes('engagement') || norm.includes('préambule')) {
+    return {
+      bg: 'bg-blue-50/70',
+      hoverBg: 'hover:bg-blue-50',
+      text: 'text-blue-900',
+      border: 'border-blue-200',
+      tag: 'bg-blue-600 text-white',
+      badge: 'bg-blue-100 text-blue-800 border-blue-200',
+      iconColor: 'text-blue-600',
+    };
+  }
+  if (norm.includes('poste') || norm.includes('mission') || norm.includes('qualification') || norm.includes('lieu') || norm.includes('mobilité') || norm.includes('mobilite')) {
+    return {
+      bg: 'bg-amber-50/70',
+      hoverBg: 'hover:bg-amber-50',
+      text: 'text-amber-900',
+      border: 'border-amber-200',
+      tag: 'bg-amber-600 text-white',
+      badge: 'bg-amber-100 text-amber-800 border-amber-200',
+      iconColor: 'text-amber-600',
+    };
+  }
+  if (norm.includes('temps') || norm.includes('durée') || norm.includes('duree') || norm.includes('horaire')) {
+    return {
+      bg: 'bg-purple-50/70',
+      hoverBg: 'hover:bg-purple-50',
+      text: 'text-purple-900',
+      border: 'border-purple-200',
+      tag: 'bg-purple-600 text-white',
+      badge: 'bg-purple-100 text-purple-800 border-purple-200',
+      iconColor: 'text-purple-600',
+    };
+  }
+  if (norm.includes('rémunération') || norm.includes('remuneration') || norm.includes('salaire') || norm.includes('prime')) {
+    return {
+      bg: 'bg-emerald-50/70',
+      hoverBg: 'hover:bg-emerald-50',
+      text: 'text-emerald-900',
+      border: 'border-emerald-200',
+      tag: 'bg-emerald-600 text-white',
+      badge: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      iconColor: 'text-emerald-600',
+    };
+  }
+  if (norm.includes('transport') || norm.includes('sécurité') || norm.includes('securite') || norm.includes('conduite') || norm.includes('véhicule') || norm.includes('vehicule')) {
+    return {
+      bg: 'bg-teal-50/70',
+      hoverBg: 'hover:bg-teal-50',
+      text: 'text-teal-900',
+      border: 'border-teal-200',
+      tag: 'bg-teal-600 text-white',
+      badge: 'bg-teal-100 text-teal-800 border-teal-200',
+      iconColor: 'text-teal-600',
+    };
+  }
+  if (norm.includes('encadrement') || norm.includes('cadre') || norm.includes('maîtrise') || norm.includes('maitrise')) {
+    return {
+      bg: 'bg-indigo-50/70',
+      hoverBg: 'hover:bg-indigo-50',
+      text: 'text-indigo-900',
+      border: 'border-indigo-200',
+      tag: 'bg-indigo-600 text-white',
+      badge: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+      iconColor: 'text-indigo-600',
+    };
+  }
+  if (norm.includes('établissement') || norm.includes('etablissement') || norm.includes('site') || norm.includes('urbain') || norm.includes('régional') || norm.includes('regional') || norm.includes('tourisme')) {
+    return {
+      bg: 'bg-cyan-50/70',
+      hoverBg: 'hover:bg-cyan-50',
+      text: 'text-cyan-900',
+      border: 'border-cyan-200',
+      tag: 'bg-cyan-600 text-white',
+      badge: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+      iconColor: 'text-cyan-600',
+    };
+  }
+  if (norm.includes('avenant') || norm.includes('mutation') || norm.includes('renouvellement')) {
+    return {
+      bg: 'bg-orange-50/70',
+      hoverBg: 'hover:bg-orange-50',
+      text: 'text-orange-900',
+      border: 'border-orange-200',
+      tag: 'bg-orange-600 text-white',
+      badge: 'bg-orange-100 text-orange-800 border-orange-200',
+      iconColor: 'text-orange-600',
+    };
+  }
+  return {
+    bg: 'bg-slate-50/70',
+    hoverBg: 'hover:bg-slate-50',
+    text: 'text-slate-900',
+    border: 'border-slate-200',
+    tag: 'bg-slate-700 text-white',
+    badge: 'bg-slate-100 text-slate-800 border-slate-200',
+    iconColor: 'text-slate-600',
+  };
+};
 
 interface ContractWizardProps {
   db: AppDatabase;
@@ -380,10 +390,55 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
   const [searchArticleQuery, setSearchArticleQuery] = useState('');
   const [expandedPreviewIds, setExpandedPreviewIds] = useState<string[]>([]);
 
-  // Expanded sections state (default: all sections open for immediate overview)
+  // Dynamic categories extracted directly from the actual articles in the database
+  // The rubriques are ordered naturally according to the min article order in each category
+  const categoryGroups = useMemo<ArticleCategoryGroup[]>(() => {
+    const map = new Map<string, { minOrder: number; totalCount: number }>();
+
+    db.articles.forEach((art) => {
+      const cat = (art.category && art.category.trim()) ? art.category.trim() : 'Général';
+      if (!map.has(cat)) {
+        map.set(cat, { minOrder: art.order ?? 999, totalCount: 0 });
+      }
+      const entry = map.get(cat)!;
+      entry.totalCount += 1;
+      if (typeof art.order === 'number' && art.order < entry.minOrder) {
+        entry.minOrder = art.order;
+      }
+    });
+
+    const groups: ArticleCategoryGroup[] = Array.from(map.entries()).map(([catName, data]) => {
+      const id = `cat-${catName.toLowerCase().replace(/[^a-z0-9]/gi, '-')}`;
+      return {
+        id,
+        name: catName,
+        minOrder: data.minOrder,
+        style: getCategoryStyle(catName),
+      };
+    });
+
+    groups.sort((a, b) => {
+      if (a.minOrder !== b.minOrder) return a.minOrder - b.minOrder;
+      return a.name.localeCompare(b.name, 'fr');
+    });
+
+    return groups;
+  }, [db.articles]);
+
+  // Expanded sections / categories state (default: all open for clear overview)
   const [expandedSectionIds, setExpandedSectionIds] = useState<string[]>(() =>
-    CONTRACT_SECTIONS.map((s) => s.id)
+    categoryGroups.map((s: ArticleCategoryGroup) => s.id)
   );
+
+  // Keep expandedSectionIds in sync when articles or categories change
+  useEffect(() => {
+    setExpandedSectionIds((prev) => {
+      const allIds = categoryGroups.map((c: ArticleCategoryGroup) => c.id);
+      if (prev.length === 0) return allIds;
+      const set = new Set([...prev, ...allIds]);
+      return Array.from(set);
+    });
+  }, [categoryGroups]);
 
   // Modals
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -537,13 +592,15 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     return idx !== -1 ? idx + 1 : null;
   };
 
-  const getSectionArticles = (section: ContractSectionConfig): ContractArticle[] => {
+  const getCategoryArticles = (categoryName: string): ContractArticle[] => {
     return db.articles
       .filter((art) => {
+        const cat = (art.category && art.category.trim()) ? art.category.trim() : 'Général';
+        if (cat !== categoryName) return false;
         if (filterToProfileOnly && !isArticleCompatibleWithProfile(art, formData)) {
           return false;
         }
-        return section.filterFn(art);
+        return true;
       })
       .sort((a, b) => a.order - b.order);
   };
@@ -617,7 +674,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     });
 
     setSelectedArticleIds(tpl.articleIds);
-    setExpandedSectionIds(CONTRACT_SECTIONS.map((s) => s.id));
+    setExpandedSectionIds(categoryGroups.map((s: ArticleCategoryGroup) => s.id));
   };
 
   const toggleArticleSelection = (articleId: string) => {
@@ -1926,7 +1983,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    Par Rubriques
+                    Par Catégories (Rubriques)
                   </button>
                   <button
                     type="button"
@@ -1978,12 +2035,12 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
           {/* Articles Container */}
           <div className="p-3 max-h-[520px] overflow-y-auto space-y-3 bg-slate-100/40">
             {groupingMode === 'sections' ? (
-              /* GROUPING BY CONTRACT SECTIONS (1 TO 6) */
-              CONTRACT_SECTIONS.map((section) => {
-                let sectionArticles = getSectionArticles(section);
+              /* DYNAMIC GROUPING BY ARTICLE CATEGORIES */
+              categoryGroups.map((catGroup: ArticleCategoryGroup, idx: number) => {
+                let catArticles = getCategoryArticles(catGroup.name);
                 if (searchArticleQuery.trim()) {
                   const q = searchArticleQuery.toLowerCase();
-                  sectionArticles = sectionArticles.filter(
+                  catArticles = catArticles.filter(
                     (a) =>
                       a.title.toLowerCase().includes(q) ||
                       a.code.toLowerCase().includes(q) ||
@@ -1991,42 +2048,49 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                   );
                 }
 
-                if (sectionArticles.length === 0) return null;
+                if (catArticles.length === 0) return null;
 
-                const selectedInSec = sectionArticles.filter((a) => selectedArticleIds.includes(a.id));
-                const isExpanded = expandedSectionIds.includes(section.id);
+                const selectedInCat = catArticles.filter((a) => selectedArticleIds.includes(a.id));
+                const isExpanded = expandedSectionIds.includes(catGroup.id);
 
                 return (
                   <div
-                    key={section.id}
+                    key={catGroup.id}
                     className="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden"
                   >
                     {/* Section Header */}
                     <div
-                      onClick={() => toggleSectionExpanded(section.id)}
-                      className="px-3.5 py-2.5 flex items-center justify-between cursor-pointer select-none bg-slate-50/70 hover:bg-slate-50 transition"
+                      onClick={() => toggleSectionExpanded(catGroup.id)}
+                      className={`px-3.5 py-2.5 flex items-center justify-between cursor-pointer select-none transition ${catGroup.style.bg} ${catGroup.style.hoverBg}`}
                     >
                       <div className="flex items-center space-x-2.5">
-                        <span className="w-5 h-5 rounded-md flex items-center justify-center font-bold text-[10px] bg-slate-800 text-white">
-                          {section.id.split('-')[1]?.slice(0, 2).toUpperCase() || '§'}
+                        <span className={`w-6 h-6 rounded-md flex items-center justify-center font-bold text-xs ${catGroup.style.tag}`}>
+                          {idx + 1}
                         </span>
                         <div>
-                          <div className="flex items-center gap-1.5">
-                            <h4 className="text-xs font-bold text-slate-900">{section.title}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className={`text-xs font-bold ${catGroup.style.text}`}>
+                              {catGroup.name}
+                            </h4>
+                            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/80 border border-slate-200/80 text-slate-500 font-medium">
+                              Rubrique
+                            </span>
                           </div>
-                          <p className="text-[10px] text-slate-500 line-clamp-1">{section.description}</p>
+                          <p className="text-[10px] text-slate-500 line-clamp-1">
+                            {catArticles.length} clause(s) disponible(s) dans cette catégorie
+                          </p>
                         </div>
                       </div>
 
                       <div className="flex items-center space-x-2">
                         <span
                           className={`text-[11px] font-bold px-2 py-0.5 rounded-full font-mono ${
-                            selectedInSec.length > 0
+                            selectedInCat.length > 0
                               ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-slate-100 text-slate-500'
+                              : 'bg-white text-slate-500 border border-slate-200'
                           }`}
                         >
-                          {selectedInSec.length}/{sectionArticles.length}
+                          {selectedInCat.length}/{catArticles.length}
                         </span>
                         {isExpanded ? (
                           <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
@@ -2040,13 +2104,15 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                     {isExpanded && (
                       <div className="p-2.5 border-t border-slate-100 bg-slate-50/30 space-y-1.5">
                         <div className="flex items-center justify-between px-1 pb-1 text-[10.5px]">
-                          <span className="text-slate-400">{sectionArticles.length} clause(s) dans cette rubrique</span>
+                          <span className="text-slate-400">
+                            {catArticles.length} clause(s) dans la rubrique « {catGroup.name} »
+                          </span>
                           <div className="flex items-center space-x-2">
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleSelectAllInList(sectionArticles);
+                                handleSelectAllInList(catArticles);
                               }}
                               className="text-blue-600 hover:underline font-semibold cursor-pointer"
                             >
@@ -2057,7 +2123,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleDeselectAllInList(sectionArticles);
+                                handleDeselectAllInList(catArticles);
                               }}
                               className="text-slate-400 hover:underline cursor-pointer"
                             >
@@ -2066,7 +2132,7 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                           </div>
                         </div>
 
-                        {sectionArticles.map((art) => renderArticleCard(art))}
+                        {catArticles.map((art) => renderArticleCard(art))}
                       </div>
                     )}
                   </div>
