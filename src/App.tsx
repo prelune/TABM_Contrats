@@ -37,7 +37,6 @@ import {
   Sparkles, 
   ShieldCheck, 
   Download, 
-  Bus,
   Layers,
   Calculator,
   History,
@@ -321,16 +320,12 @@ export default function App() {
           /* Empty Session State Welcome Card */
           <div className="max-w-4xl mx-auto px-4 py-16 text-center">
             <div className="bg-white rounded-2xl p-8 sm:p-12 shadow-sm border border-slate-200 space-y-6">
-              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto border border-blue-100 shadow-inner">
-                <Bus className="w-8 h-8" />
-              </div>
-
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-                  Application RH Transport Sécurisée
+                  data powered
                 </span>
                 <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-3">
-                  Bienvenue sur TABM-Contrats
+                  Bienvenue !
                 </h2>
                 <p className="text-sm text-slate-600 max-w-xl mx-auto mt-2 leading-relaxed">
                   Votre outil autonome de rédaction automatisée des contrats de travail, calcul de salaire par coefficient et suivi des signatures.

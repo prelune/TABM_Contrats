@@ -21,51 +21,7 @@ export const SessionBanner: React.FC<SessionBannerProps> = ({
   const isMemoryEmpty = db.articles.length === 0 && db.jobs.length === 0 && db.contracts.length === 0;
 
   if (isMemoryEmpty) {
-    return (
-      <div className="bg-amber-50 border-b border-amber-200 px-4 py-4 sm:px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-start space-x-3">
-            <div className="p-2 rounded-lg bg-amber-100 text-amber-800 shrink-0 mt-0.5">
-              <ShieldCheck className="w-5 h-5 text-amber-700" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-amber-900">
-                Mode Sécurisé Zéro-Cloud • Mémoire de session vierge
-              </h3>
-              <p className="text-xs text-amber-700 mt-0.5 max-w-3xl">
-                Conformément à votre politique RH, aucune donnée n'est stockée en ligne. Pour commencer à travailler, chargez votre précédent fichier de sauvegarde Excel, ou démarrez immédiatement avec notre jeu de données démo dédié au transport.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={onImportExcel}
-              accept=".xlsx, .xls"
-              className="hidden"
-            />
-            <button
-              id="banner-btn-import-excel"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-lg bg-white border border-amber-300 text-amber-900 hover:bg-amber-100/50 shadow-sm transition"
-            >
-              <Upload className="w-4 h-4 mr-1.5 text-amber-700" />
-              Charger mon Excel
-            </button>
-            <button
-              id="banner-btn-load-demo"
-              onClick={onLoadSampleData}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition"
-            >
-              <Sparkles className="w-4 h-4 mr-1.5" />
-              Charger données démo TABM
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
