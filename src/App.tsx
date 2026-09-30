@@ -349,7 +349,7 @@ export default function App() {
               {/* Ligne informative épurée avec icône ampoule */}
               <div className="pt-6 border-t border-slate-100 flex items-center justify-center gap-2 text-xs text-slate-500">
                 <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
-                <span>La dernière sauvegarde est stockée sur le Teams TABM Application (Ressources humaines &gt Partagé &gt Sauvegardes Contrats).</span>
+                <span>La dernière sauvegarde est stockée sur le Teams TABM Application (Ressources humaines &gt; Partagé &gt; Sauvegardes Contrats).</span>
               </div>
             </div>
           </div>
@@ -434,9 +434,9 @@ export default function App() {
           </div>
 
           <div className="flex items-center space-x-4 text-[11px] text-slate-400">
-            <span>Stockage sur mémoire locale</span>
+            <span>Stockage sur une mémoire locale seulement</span>
             <span>•</span>
-            <span>{db.settings.collectiveAgreement || 'Convention Collective Nationale des Transports Routiers'}</span>
+            <span>En cas de pépin, contactez Maxime.serra@transdev.com</span>
           </div>
         </div>
       </footer>
