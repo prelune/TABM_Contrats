@@ -349,7 +349,7 @@ export default function App() {
               {/* Ligne informative épurée avec icône ampoule */}
               <div className="pt-6 border-t border-slate-100 flex items-center justify-center gap-2 text-xs text-slate-500">
                 <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
-                <span>La dernière sauvegarde est stockée sur le Teams TABM Application (Ressources humaines > Partagé > Sauvegardes Contrats).</span>
+                <span>La dernière sauvegarde est stockée sur le Teams TABM Application (Ressources humaines &gt Partagé &gt Sauvegardes Contrats).</span>
               </div>
             </div>
           </div>
