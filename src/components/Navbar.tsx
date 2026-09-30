@@ -59,10 +59,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div>
               <div className="flex items-center space-x-2">
                 <span className="font-extrabold text-lg tracking-tight font-display text-white">
-                  Générateur de contrat'
+                  Générateur de contrats
                 </span>
                 <span className="bg-blue-500/20 text-blue-300 text-xs px-2 py-0.5 rounded font-medium border border-blue-500/30">
-                  data powered
+                  DATA POWERED
                 </span>
               </div>
               <p className="text-xs text-slate-400 hidden sm:block">
