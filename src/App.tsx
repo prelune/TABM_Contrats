@@ -325,10 +325,10 @@ export default function App() {
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-left max-w-lg mx-auto text-xs text-slate-700 space-y-2">
                 <div className="font-bold text-slate-900 flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  Garantie Zéro Stockage en Ligne
+                  Stockage exclusivement en local
                 </div>
                 <p className="text-slate-600 leading-relaxed">
-                  L'application fonctionne exclusivement dans la mémoire locale de votre navigateur. Aucune donnée de collaborateur n'est transmise sur un serveur distant.
+                  Aucune donnée de collaborateur n'est transmise sur un serveur distant. Pensez à insérer la sauvegarde la plus récente et à l'extraire en fin de sesssion.
                 </p>
               </div>
 
@@ -336,7 +336,7 @@ export default function App() {
               <div className="pt-2 flex items-center justify-center">
                 <label className="inline-flex items-center justify-center px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl cursor-pointer shadow-md transition">
                   <Upload className="w-4 h-4 mr-2 text-blue-400" />
-                  <span>Charger ma sauvegarde Excel</span>
+                  <span>Charger la dernière sauvegarde</span>
                   <input
                     type="file"
                     onChange={handleImportExcel}
@@ -349,7 +349,7 @@ export default function App() {
               {/* Ligne informative épurée avec icône ampoule */}
               <div className="pt-6 border-t border-slate-100 flex items-center justify-center gap-2 text-xs text-slate-500">
                 <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
-                <span>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</span>
+                <span>La dernière sauvegarde est stockée sur le Teams TABM Application (Ressources humaines > Partagé > Sauvegardes Contrats).</span>
               </div>
             </div>
           </div>
