@@ -427,14 +427,14 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center space-x-2">
             <span className="font-bold text-slate-800 font-display">
-              {db.settings.appName || 'TABM-Contrats'}
+              {db.settings.appName || 'Contrats'}
             </span>
             <span>—</span>
-            <span>{db.settings.appFooterNotice || "Système RH d'Édition et de Suivi des Contrats de Travail"}</span>
+            <span>{db.settings.appFooterNotice || "Système d'édition et de suivi des contrats de travail"}</span>
           </div>
 
           <div className="flex items-center space-x-4 text-[11px] text-slate-400">
-            <span>Stockage 100% Mémoire Locale & Sauvegarde Excel</span>
+            <span>Stockage sur mémoire locale</span>
             <span>•</span>
             <span>{db.settings.collectiveAgreement || 'Convention Collective Nationale des Transports Routiers'}</span>
           </div>
