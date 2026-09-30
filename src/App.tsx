@@ -34,13 +34,11 @@ import {
   CheckCircle2, 
   AlertTriangle, 
   Upload, 
-  Sparkles, 
   ShieldCheck, 
   Download, 
   Layers,
-  Calculator,
-  History,
-  FileText
+  FileText,
+  Lightbulb
 } from 'lucide-react';
 
 export default function App() {
@@ -101,12 +99,6 @@ export default function App() {
     reader.readAsArrayBuffer(file);
     // Reset file input value to allow re-uploading the same file if needed
     e.target.value = '';
-  };
-
-  const handleLoadSampleData = () => {
-    const sample = createSampleDatabase();
-    setDb(sample);
-    showToast('Données de démonstration TABM Transport chargées en mémoire !', 'success');
   };
 
   const handleClearMemory = () => {
@@ -300,7 +292,6 @@ export default function App() {
         db={db}
         onExportExcel={handleExportExcel}
         onImportExcel={handleImportExcel}
-        onLoadSampleData={handleLoadSampleData}
         onClearMemory={handleClearMemory}
         onOpenTagsModal={() => setIsTagsModalOpen(true)}
       />
@@ -309,8 +300,6 @@ export default function App() {
       <SessionBanner
         db={db}
         onExportExcel={handleExportExcel}
-        onImportExcel={handleImportExcel}
-        onLoadSampleData={handleLoadSampleData}
         onClearMemory={handleClearMemory}
       />
 
@@ -344,8 +333,8 @@ export default function App() {
               </div>
 
               {/* Actions to start */}
-              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <label className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl cursor-pointer shadow-md transition">
+              <div className="pt-2 flex items-center justify-center">
+                <label className="inline-flex items-center justify-center px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl cursor-pointer shadow-md transition">
                   <Upload className="w-4 h-4 mr-2 text-blue-400" />
                   <span>Charger ma sauvegarde Excel</span>
                   <input
@@ -355,47 +344,12 @@ export default function App() {
                     className="hidden"
                   />
                 </label>
-
-                <button
-                  onClick={handleLoadSampleData}
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-md transition"
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  <span>Démarrer avec la Démo Transport</span>
-                </button>
               </div>
 
-              {/* Features overview pills */}
-              <div className="pt-8 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
-                  <div className="font-bold text-xs text-slate-800 flex items-center gap-1.5 mb-1">
-                    <Calculator className="w-3.5 h-3.5 text-amber-600" />
-                    Salaire par Coefficient
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    Calcul automatique basé sur la table des métiers et la valeur du point.
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
-                  <div className="font-bold text-xs text-slate-800 flex items-center gap-1.5 mb-1">
-                    <Layers className="w-3.5 h-3.5 text-emerald-600" />
-                    Clauses par Profil
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    Filtrage dynamique par type de contrat (CDI, CDD...) et statut (Conducteur, Cadre...).
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
-                  <div className="font-bold text-xs text-slate-800 flex items-center gap-1.5 mb-1">
-                    <History className="w-3.5 h-3.5 text-indigo-600" />
-                    Suivi des Signatures
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    Cases à cocher pour délais, signatures, DPAE et archivage SharePoint.
-                  </p>
-                </div>
+              {/* Ligne informative épurée avec icône ampoule */}
+              <div className="pt-6 border-t border-slate-100 flex items-center justify-center gap-2 text-xs text-slate-500">
+                <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
+                <span>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</span>
               </div>
             </div>
           </div>

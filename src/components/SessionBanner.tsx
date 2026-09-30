@@ -1,23 +1,18 @@
-import React, { useRef } from 'react';
-import { ShieldCheck, Upload, Download, Sparkles, AlertCircle, RefreshCw, FileSpreadsheet } from 'lucide-react';
+import React from 'react';
+import { FileSpreadsheet } from 'lucide-react';
 import { AppDatabase } from '../types';
 
 interface SessionBannerProps {
   db: AppDatabase;
   onExportExcel: () => void;
-  onImportExcel: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onLoadSampleData: () => void;
   onClearMemory: () => void;
 }
 
 export const SessionBanner: React.FC<SessionBannerProps> = ({
   db,
   onExportExcel,
-  onImportExcel,
-  onLoadSampleData,
   onClearMemory,
 }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const isMemoryEmpty = db.articles.length === 0 && db.jobs.length === 0 && db.contracts.length === 0;
 
   if (isMemoryEmpty) {

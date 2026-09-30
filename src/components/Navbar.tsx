@@ -8,7 +8,6 @@ import {
   Upload, 
   HelpCircle, 
   Trash2, 
-  Sparkles, 
   CheckCircle2, 
   AlertTriangle,
   Sliders,
@@ -22,7 +21,6 @@ interface NavbarProps {
   db: AppDatabase;
   onExportExcel: () => void;
   onImportExcel: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onLoadSampleData: () => void;
   onClearMemory: () => void;
   onOpenTagsModal: () => void;
 }
@@ -33,7 +31,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   db,
   onExportExcel,
   onImportExcel,
-  onLoadSampleData,
   onClearMemory,
   onOpenTagsModal,
 }) => {
@@ -128,19 +125,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Download className="w-3.5 h-3.5 mr-1.5" />
               <span>Sauvegarder Excel</span>
             </button>
-
-            {/* If empty, offer sample data button */}
-            {isMemoryEmpty && (
-              <button
-                id="btn-load-demo"
-                onClick={onLoadSampleData}
-                className="inline-flex items-center px-2.5 py-1.5 text-xs font-semibold rounded-md bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/40 transition"
-                title="Charger les données types pour société de transport"
-              >
-                <Sparkles className="w-3.5 h-3.5 mr-1" />
-                <span className="hidden md:inline">Données démo</span>
-              </button>
-            )}
 
             {/* Reset memory button */}
             {!isMemoryEmpty && (
