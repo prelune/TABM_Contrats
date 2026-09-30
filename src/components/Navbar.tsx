@@ -59,14 +59,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div>
               <div className="flex items-center space-x-2">
                 <span className="font-extrabold text-lg tracking-tight font-display text-white">
-                  {db.settings.appName || 'TABM-Contrats'}
+                  {db.settings.appName || 'Générateur de contrat'}
                 </span>
                 <span className="bg-blue-500/20 text-blue-300 text-xs px-2 py-0.5 rounded font-medium border border-blue-500/30">
-                  {db.settings.appBadge || 'RH Transport'}
+                  {db.settings.appBadge || 'data powered'}
                 </span>
               </div>
               <p className="text-xs text-slate-400 hidden sm:block">
-                {db.settings.appSubtitle || 'Génération & Suivi des contrats de travail • 100% Hors-ligne'}
+                {db.settings.appSubtitle || 'Initié par Transdev Alpilles Berre Méditerranée'}
               </p>
             </div>
           </div>
