@@ -550,6 +550,31 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
     });
   }, [formData.seniorityDate, formData.contractType, db.articles]);
 
+  // Plafonnement de la reprise d'ancienneté à 3 mois maximum pour un Avenant de passage en CDI
+  const isAvenantCdi = formData.contractType === 'avenant_cdi';
+  const calculateThreeMonthsPriorDate = (startDateStr?: string): string => {
+    if (!startDateStr) return '';
+    const parts = startDateStr.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(isNaN)) return '';
+    const [year, month, day] = parts;
+    const targetDate = new Date(year, month - 1 - 3, day);
+    const yyyy = targetDate.getFullYear();
+    const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(targetDate.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const avenantCdiMinDate = isAvenantCdi && formData.startDate ? calculateThreeMonthsPriorDate(formData.startDate) : '';
+
+  useEffect(() => {
+    if (formData.contractType === 'avenant_cdi' && formData.startDate && formData.seniorityDate) {
+      const minDate = calculateThreeMonthsPriorDate(formData.startDate);
+      if (minDate && formData.seniorityDate < minDate) {
+        setFormData((prev) => ({ ...prev, seniorityDate: minDate }));
+      }
+    }
+  }, [formData.contractType, formData.startDate, formData.seniorityDate]);
+
   // Auto-suggest articles when contract type, status, work time regime or establishment changes (unless applying a template / duplicated)
   useEffect(() => {
     if (isCustomSelectionRef.current) {
@@ -1727,11 +1752,21 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                   </div>
                   <input
                     type="date"
+                    min={isAvenantCdi && avenantCdiMinDate ? avenantCdiMinDate : undefined}
+                    max={formData.startDate || undefined}
                     value={formData.seniorityDate || ''}
-                    onChange={(e) => setFormData({ ...formData, seniorityDate: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden font-medium text-slate-800"
+                    onChange={(e) => {
+                      let val = e.target.value;
+                      if (isAvenantCdi && avenantCdiMinDate && val && val < avenantCdiMinDate) {
+                        val = avenantCdiMinDate;
+                      }
+                      setFormData({ ...formData, seniorityDate: val });
+                    }}
+                    className={`w-full px-3 py-2 text-xs bg-white border rounded-lg focus:ring-2 focus:outline-hidden font-medium text-slate-800 ${
+                      isAvenantCdi ? 'border-amber-300 focus:ring-amber-500' : 'border-slate-300 focus:ring-blue-500'
+                    }`}
                   />
-                  <div className="mt-1 text-[10px]">
+                  <div className="mt-1 text-[10px] space-y-1">
                     {formData.seniorityDate ? (
                       <span className="text-emerald-700 font-semibold flex items-center gap-1">
                         <Check className="w-3 h-3 text-emerald-600 shrink-0" />
@@ -1741,6 +1776,23 @@ export const ContractWizard: React.FC<ContractWizardProps> = ({
                       <span className="text-slate-400">
                         Sans reprise ➔ clause <strong>ART-02A</strong> obligatoire
                       </span>
+                    )}
+
+                    {isAvenantCdi && (
+                      <div className="p-1.5 bg-amber-50 border border-amber-200 rounded text-[10px] text-amber-800 flex items-start gap-1.5 animate-in fade-in">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold">Avenant passage en CDI :</span>{' '}
+                          <span>
+                            Reprise d'ancienneté plafonnée à <strong>3 mois maximum</strong>
+                            {avenantCdiMinDate ? (
+                              <> (au plus tôt le <strong>{formatDateFrench(avenantCdiMinDate)}</strong>)</>
+                            ) : (
+                              ''
+                            )}.
+                          </span>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>

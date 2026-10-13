@@ -42,12 +42,19 @@ export function printContractDocument(elementId: string): void {
           <style>
             @page {
               size: A4 portrait;
-              margin: 14mm 14mm 14mm 14mm;
+              margin: 14mm 14mm 18mm 14mm;
+              @bottom-right {
+                content: "Page " counter(page);
+                font-family: Verdana, Geneva, sans-serif;
+                font-size: 8.5pt;
+                color: #64748b;
+              }
             }
             * {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
               box-sizing: border-box !important;
+              font-family: Verdana, Geneva, sans-serif !important;
             }
             html, body {
               background-color: #ffffff !important;
@@ -55,9 +62,9 @@ export function printContractDocument(elementId: string): void {
               margin: 0 !important;
               padding: 0 !important;
               width: 100% !important;
-              font-family: Georgia, Cambria, "Times New Roman", Times, serif;
-              font-size: 11pt;
-              line-height: 1.5;
+              font-family: Verdana, Geneva, sans-serif !important;
+              font-size: 10pt !important;
+              line-height: 1.5 !important;
             }
             .contract-print-page {
               width: 100% !important;
@@ -67,12 +74,15 @@ export function printContractDocument(elementId: string): void {
               background: #ffffff !important;
               box-shadow: none !important;
               border: none !important;
+              font-family: Verdana, Geneva, sans-serif !important;
+              font-size: 10pt !important;
             }
             /* Respect strict de la disposition des blocs */
             .article-block {
               page-break-inside: avoid !important;
               break-inside: avoid !important;
               margin-bottom: 1.25rem !important;
+              font-size: 10pt !important;
             }
             .signatures-block {
               page-break-inside: avoid !important;
@@ -84,6 +94,24 @@ export function printContractDocument(elementId: string): void {
               display: grid !important;
               grid-template-columns: 1fr 1fr !important;
               gap: 2rem !important;
+            }
+            /* Pagination fixe de bas de page pour impression Webkit / Chromium */
+            @media print {
+              body {
+                counter-reset: page;
+              }
+              .print-fixed-pagination {
+                position: fixed;
+                bottom: 2mm;
+                right: 14mm;
+                font-family: Verdana, Geneva, sans-serif !important;
+                font-size: 8.5pt !important;
+                color: #64748b !important;
+                display: block !important;
+              }
+              .print-fixed-pagination::after {
+                content: "Page " counter(page);
+              }
             }
           </style>
         </head>

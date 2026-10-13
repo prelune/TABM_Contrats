@@ -3,10 +3,9 @@ import {
   X, 
   Printer, 
   FileCheck, 
-  Bus,
-  ShieldCheck,
-  Copy,
-  Check
+  ShieldCheck, 
+  Copy, 
+  Check 
 } from 'lucide-react';
 import { ContractEmployeeData, ContractArticle } from '../../types';
 import { 
@@ -130,88 +129,23 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
             {/* Printable A4 Paper Container - Solid white background covering the full length of the document */}
             <div
               id="contract-document-preview"
-              className="w-full max-w-3xl bg-white shadow-2xl rounded-sm p-8 sm:p-14 text-slate-900 border border-slate-300 h-auto block text-xs sm:text-sm leading-relaxed"
-              style={{ fontFamily: 'Georgia, Cambria, "Times New Roman", Times, serif' }}
+              className="w-full max-w-3xl bg-white shadow-2xl rounded-sm p-8 sm:p-14 text-slate-900 border border-slate-300 h-auto block leading-relaxed"
+              style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '10pt', color: '#0f172a' }}
             >
-              {/* Header Letterhead */}
-              <div 
-                className="border-b-2 border-slate-900 pb-4 mb-6 flex items-start justify-between"
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0f172a', paddingBottom: '1rem', marginBottom: '1.5rem' }}
-              >
+              {/* Header: Photo / Logo uniquement */}
+              {employeeData.establishmentLogoUrl ? (
                 <div 
-                  className="flex items-start space-x-3"
-                  style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}
+                  className="pb-4 mb-6 border-b border-slate-200 flex items-center justify-start"
+                  style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}
                 >
-                  {employeeData.establishmentLogoUrl ? (
-                    <img 
-                      src={employeeData.establishmentLogoUrl} 
-                      alt="Logo Entreprise" 
-                      className="h-12 max-w-[140px] object-contain shrink-0 rounded"
-                      style={{ maxHeight: '48px', maxWidth: '140px', objectFit: 'contain', flexShrink: 0 }}
-                    />
-                  ) : (
-                    <div 
-                      className="p-2 rounded-lg bg-blue-50 border border-blue-200 shrink-0"
-                      style={{ padding: '0.5rem', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.5rem', flexShrink: 0 }}
-                    >
-                      <Bus className="w-6 h-6 text-blue-700" />
-                    </div>
-                  )}
-                  <div>
-                    <div className="flex items-center space-x-2 text-slate-900">
-                      <span 
-                        className="font-bold text-base sm:text-lg tracking-wider font-sans"
-                        style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontWeight: 'bold', fontSize: '1.125rem', letterSpacing: '0.05em', color: '#0f172a' }}
-                      >
-                        {employeeData.companyName.toUpperCase()}
-                      </span>
-                    </div>
-                    {employeeData.establishmentName && (
-                      <p 
-                        className="text-[11px] font-semibold text-blue-900 font-sans"
-                        style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: '11px', fontWeight: '600', color: '#1e3a8a', margin: '2px 0 0 0' }}
-                      >
-                        {employeeData.establishmentName}
-                      </p>
-                    )}
-                    <p 
-                      className="text-[11px] text-slate-600 font-sans mt-0.5"
-                      style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: '11px', color: '#475569', margin: '2px 0 0 0' }}
-                    >
-                      {employeeData.companyAddress}, {employeeData.companyCity}
-                    </p>
-                    <p 
-                      className="text-[10px] text-slate-500 font-sans"
-                      style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: '10px', color: '#64748b', margin: '2px 0 0 0' }}
-                    >
-                      {employeeData.collectiveAgreement}
-                    </p>
-                  </div>
+                  <img 
+                    src={employeeData.establishmentLogoUrl} 
+                    alt="Logo" 
+                    className="max-h-14 max-w-[180px] object-contain rounded"
+                    style={{ maxHeight: '56px', maxWidth: '180px', objectFit: 'contain' }}
+                  />
                 </div>
-                <div 
-                  className="text-right font-sans"
-                  style={{ textAlign: 'right', fontFamily: 'system-ui, -apple-system, sans-serif' }}
-                >
-                  <span 
-                    className="text-[10px] uppercase font-bold text-slate-500 block"
-                    style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', color: '#64748b', display: 'block' }}
-                  >
-                    Réf. Contrat
-                  </span>
-                  <span 
-                    className="text-xs font-mono font-bold text-blue-900"
-                    style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 'bold', color: '#1e3a8a' }}
-                  >
-                    {contractNumber}
-                  </span>
-                  <span 
-                    className="text-[10px] text-slate-500 block mt-1"
-                    style={{ fontSize: '10px', color: '#64748b', display: 'block', marginTop: '4px' }}
-                  >
-                    Édition RH Sécurisée
-                  </span>
-                </div>
-              </div>
+              ) : null}
 
               {/* Document Title */}
               <div 
@@ -219,14 +153,14 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
                 style={{ textAlign: 'center', margin: '1.5rem 0', padding: '0.75rem 0', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1' }}
               >
                 <h1 
-                  className="text-base sm:text-lg font-bold tracking-wide uppercase font-sans text-slate-900"
-                  style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: '1.125rem', fontWeight: 'bold', letterSpacing: '0.025em', textTransform: 'uppercase', color: '#0f172a', margin: 0 }}
+                  className="font-bold tracking-wide uppercase text-slate-900"
+                  style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '12pt', fontWeight: 'bold', letterSpacing: '0.025em', textTransform: 'uppercase', color: '#0f172a', margin: 0 }}
                 >
                   {doc.title}
                 </h1>
                 <p 
-                  className="text-xs text-slate-600 font-sans mt-1"
-                  style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: '12px', color: '#475569', marginTop: '4px', marginBottom: 0 }}
+                  className="text-slate-600 mt-1"
+                  style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '9pt', color: '#475569', marginTop: '4px', marginBottom: 0 }}
                 >
                   Statut : {employeeData.status.toUpperCase()} • Métier : {employeeData.jobTitle} • {employeeData.workTimeRegime === 'temps_partiel' ? 'Temps Partiel (TP)' : 'Temps Complet (TC)'}{employeeData.weeklyHours ? ` (${employeeData.weeklyHours}h/sem)` : ''}
                 </p>
@@ -234,8 +168,8 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
 
               {/* Parties */}
               <div 
-                className="my-6 whitespace-pre-line text-left text-xs sm:text-[13px] leading-relaxed bg-slate-50 p-4 rounded border border-slate-200"
-                style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.375rem', padding: '1rem', margin: '1.5rem 0', whiteSpace: 'pre-line', textAlign: 'left', lineHeight: '1.5', color: '#1e293b' }}
+                className="my-6 whitespace-pre-line text-left leading-relaxed bg-slate-50 p-4 rounded border border-slate-200"
+                style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '10pt', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.375rem', padding: '1rem', margin: '1.5rem 0', whiteSpace: 'pre-line', textAlign: 'left', lineHeight: '1.5', color: '#1e293b' }}
               >
                 {doc.partiesHtml}
               </div>
@@ -246,17 +180,17 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
                   <div 
                     key={art.id} 
                     className="article-block text-left"
-                    style={{ pageBreakInside: 'avoid', breakInside: 'avoid', marginBottom: '1.5rem', textAlign: 'left' }}
+                    style={{ pageBreakInside: 'avoid', breakInside: 'avoid', marginBottom: '1.5rem', textAlign: 'left', fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '10pt' }}
                   >
                     <h3 
-                      className="font-bold text-xs sm:text-sm font-sans uppercase text-slate-900 border-b border-slate-200 pb-1 mb-2 text-left"
-                      style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: '0.875rem', fontWeight: 'bold', textTransform: 'uppercase', color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.25rem', marginBottom: '0.5rem', textAlign: 'left' }}
+                      className="font-bold uppercase text-slate-900 border-b border-slate-200 pb-1 mb-2 text-left"
+                      style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '10.5pt', fontWeight: 'bold', textTransform: 'uppercase', color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.25rem', marginBottom: '0.5rem', textAlign: 'left' }}
                     >
                       {art.title}
                     </h3>
                     <div 
-                      className="whitespace-pre-line text-xs sm:text-[13px] leading-relaxed text-slate-800 text-left"
-                      style={{ whiteSpace: 'pre-line', textAlign: 'left', lineHeight: '1.5', color: '#1e293b' }}
+                      className="whitespace-pre-line leading-relaxed text-slate-800 text-left"
+                      style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '10pt', whiteSpace: 'pre-line', textAlign: 'left', lineHeight: '1.5', color: '#1e293b' }}
                     >
                       {art.text}
                     </div>
@@ -267,17 +201,16 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
               {/* Footer Signatures */}
               <div 
                 className="signatures-block mt-12 pt-6 border-t-2 border-slate-900"
-                style={{ marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '2px solid #0f172a', pageBreakInside: 'avoid', breakInside: 'avoid' }}
+                style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '10pt', marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '2px solid #0f172a', pageBreakInside: 'avoid', breakInside: 'avoid' }}
               >
                 <div 
-                  className="whitespace-pre-line text-xs mb-6 text-left"
-                  style={{ whiteSpace: 'pre-line', fontSize: '12px', marginBottom: '1.25rem', textAlign: 'left', color: '#334155' }}
+                  className="whitespace-pre-line mb-6 text-left text-slate-700"
+                  style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '9.5pt', whiteSpace: 'pre-line', marginBottom: '1.25rem', textAlign: 'left', color: '#334155' }}
                 >
                   Fait à {employeeData.companyCity || 'Lyon'}, le {new Date().toLocaleDateString('fr-FR')}, en deux exemplaires originaux.
                   <br />
                   <em 
-                    className="text-[11px] text-slate-500"
-                    style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}
+                    style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '8.5pt', color: '#64748b', fontStyle: 'italic' }}
                   >
                     (Faire précéder chaque signature de la mention manuscrite « Bon pour accord, lu et approuvé »)
                   </em>
@@ -294,21 +227,21 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
                   >
                     <div>
                       <span 
-                        className="font-bold font-sans text-xs uppercase block text-slate-900"
-                        style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontWeight: 'bold', fontSize: '12px', textTransform: 'uppercase', color: '#0f172a', display: 'block' }}
+                        className="font-bold uppercase block text-slate-900"
+                        style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontWeight: 'bold', fontSize: '9.5pt', textTransform: 'uppercase', color: '#0f172a', display: 'block' }}
                       >
                         Pour la Société {employeeData.companyName}
                       </span>
                       <span 
-                        className="text-[11px] text-slate-600 font-sans block mt-1"
-                        style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: '11px', color: '#475569', display: 'block', marginTop: '2px' }}
+                        className="text-slate-600 block mt-1"
+                        style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '9pt', color: '#475569', display: 'block', marginTop: '2px' }}
                       >
                         {employeeData.companyRepresentative} ({employeeData.representativeRole})
                       </span>
                     </div>
                     <div 
-                      className="text-[10px] text-slate-400 italic font-sans border-t border-dashed border-slate-300 pt-2"
-                      style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: '10px', color: '#94a3b8', fontStyle: 'italic', borderTop: '1px dashed #cbd5e1', paddingTop: '0.5rem' }}
+                      className="text-slate-400 italic border-t border-dashed border-slate-300 pt-2"
+                      style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '8.5pt', color: '#94a3b8', fontStyle: 'italic', borderTop: '1px dashed #cbd5e1', paddingTop: '0.5rem' }}
                     >
                       Date, mention manuscrite et signature autorisée :
                     </div>
@@ -321,21 +254,21 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
                   >
                     <div>
                       <span 
-                        className="font-bold font-sans text-xs uppercase block text-slate-900"
-                        style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontWeight: 'bold', fontSize: '12px', textTransform: 'uppercase', color: '#0f172a', display: 'block' }}
+                        className="font-bold uppercase block text-slate-900"
+                        style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontWeight: 'bold', fontSize: '9.5pt', textTransform: 'uppercase', color: '#0f172a', display: 'block' }}
                       >
                         Le Salarié
                       </span>
                       <span 
-                        className="text-[11px] text-slate-600 font-sans block mt-1"
-                        style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: '11px', color: '#475569', display: 'block', marginTop: '2px' }}
+                        className="text-slate-600 block mt-1"
+                        style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '9pt', color: '#475569', display: 'block', marginTop: '2px' }}
                       >
                         {employeeData.civility} {employeeData.firstName} {employeeData.lastName.toUpperCase()}
                       </span>
                     </div>
                     <div 
-                      className="text-[10px] text-slate-400 italic font-sans border-t border-dashed border-slate-300 pt-2"
-                      style={{ fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: '10px', color: '#94a3b8', fontStyle: 'italic', borderTop: '1px dashed #cbd5e1', paddingTop: '0.5rem' }}
+                      className="text-slate-400 italic border-t border-dashed border-slate-300 pt-2"
+                      style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '8.5pt', color: '#94a3b8', fontStyle: 'italic', borderTop: '1px dashed #cbd5e1', paddingTop: '0.5rem' }}
                     >
                       Date, mention manuscrite et signature :
                     </div>
@@ -344,8 +277,8 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
 
                 {/* Bottom legal notice */}
                 <div 
-                  className="border-t border-slate-300 pt-3 flex flex-col space-y-2 text-[10px] text-slate-500 font-sans"
-                  style={{ borderTop: '1px solid #cbd5e1', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: '10px', color: '#64748b' }}
+                  className="border-t border-slate-300 pt-3 flex flex-col space-y-2 text-slate-500"
+                  style={{ borderTop: '1px solid #cbd5e1', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '8.5pt', color: '#64748b' }}
                 >
                   <div 
                     className="flex justify-between items-center text-slate-400"
@@ -357,12 +290,20 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
                   </div>
                   {employeeData.establishmentFooterText && (
                     <div 
-                      className="text-center pt-2 border-t border-slate-200 text-slate-600 font-medium whitespace-pre-line text-[10px]"
-                      style={{ textAlign: 'center', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0', color: '#475569', fontWeight: 500, fontSize: '10px', whiteSpace: 'pre-line' }}
+                      className="print-footer-text text-left pt-2 border-t border-slate-200 text-slate-600 font-medium whitespace-pre-line"
+                      style={{ textAlign: 'left', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0', color: '#475569', fontWeight: 500, fontSize: '9pt', whiteSpace: 'pre-line', fontFamily: 'Verdana, Geneva, sans-serif' }}
                     >
                       {employeeData.establishmentFooterText}
                     </div>
                   )}
+                  {/* Pagination de bas de page */}
+                  <div 
+                    className="flex justify-between items-center text-slate-400 pt-2 border-t border-slate-100"
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '8.5pt', color: '#94a3b8', paddingTop: '0.5rem', marginTop: '0.25rem', borderTop: '1px solid #f1f5f9', fontFamily: 'Verdana, Geneva, sans-serif' }}
+                  >
+                    <span>Document confidentiel RH</span>
+                    <span className="print-fixed-pagination">Page 1</span>
+                  </div>
                 </div>
               </div>
             </div>
