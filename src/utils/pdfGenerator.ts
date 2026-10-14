@@ -42,13 +42,7 @@ export function printContractDocument(elementId: string): void {
           <style>
             @page {
               size: A4 portrait;
-              margin: 14mm 14mm 18mm 14mm;
-              @bottom-right {
-                content: "Page " counter(page);
-                font-family: Verdana, Geneva, sans-serif;
-                font-size: 8.5pt;
-                color: #64748b;
-              }
+              margin: 12mm 14mm 18mm 14mm;
             }
             * {
               -webkit-print-color-adjust: exact !important;
@@ -64,52 +58,77 @@ export function printContractDocument(elementId: string): void {
               width: 100% !important;
               font-family: Verdana, Geneva, sans-serif !important;
               font-size: 10pt !important;
-              line-height: 1.5 !important;
+              line-height: 1.28 !important;
             }
             .contract-print-page {
               width: 100% !important;
               max-width: 100% !important;
               margin: 0 auto !important;
-              padding: 0 !important;
+              padding: 0 0 16mm 0 !important;
               background: #ffffff !important;
               box-shadow: none !important;
               border: none !important;
               font-family: Verdana, Geneva, sans-serif !important;
               font-size: 10pt !important;
+              line-height: 1.28 !important;
             }
             /* Respect strict de la disposition des blocs */
             .article-block {
               page-break-inside: avoid !important;
               break-inside: avoid !important;
-              margin-bottom: 1.25rem !important;
+              margin-bottom: 0.85rem !important;
               font-size: 10pt !important;
+              line-height: 1.28 !important;
             }
             .signatures-block {
               page-break-inside: avoid !important;
               break-inside: avoid !important;
-              margin-top: 2rem !important;
+              margin-top: 1.25rem !important;
             }
             /* Sécurité d'affichage côte à côte des signatures */
             .signature-grid {
               display: grid !important;
               grid-template-columns: 1fr 1fr !important;
-              gap: 2rem !important;
+              gap: 1.5rem !important;
             }
-            /* Pagination fixe de bas de page pour impression Webkit / Chromium */
+            /* Vrai pied de page fixe pour chaque page imprimée */
             @media print {
               body {
                 counter-reset: page;
               }
-              .print-fixed-pagination {
-                position: fixed;
-                bottom: 2mm;
-                right: 14mm;
-                font-family: Verdana, Geneva, sans-serif !important;
-                font-size: 8.5pt !important;
-                color: #64748b !important;
-                display: block !important;
+              .screen-page-counter {
+                display: none !important;
               }
-              .print-fixed-pagination::after {
+              .print-page-footer {
+                position: fixed !important;
+                bottom: 2mm !important;
+                left: 14mm !important;
+                right: 14mm !important;
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: flex-end !important;
+                border-top: 1px solid #cbd5e1 !important;
+                padding-top: 1.5mm !important;
+                font-family: Verdana, Geneva, sans-serif !important;
+                font-size: 7.5pt !important;
+                color: #64748b !important;
+                line-height: 1.25 !important;
+                background-color: #ffffff !important;
+                z-index: 9999 !important;
+              }
+              .print-page-footer-left {
+                text-align: left !important;
+                flex: 1 !important;
+                margin-right: 8mm !important;
+                white-space: pre-line !important;
+              }
+              .print-page-footer-right {
+                text-align: right !important;
+                white-space: nowrap !important;
+                font-size: 8pt !important;
+                color: #64748b !important;
+              }
+              .print-page-counter::after {
                 content: "Page " counter(page);
               }
             }
