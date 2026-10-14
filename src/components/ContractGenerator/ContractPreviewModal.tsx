@@ -175,16 +175,16 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
               </div>
 
               {/* Articles strictly numbered sequentially */}
-              <div className="space-y-4 my-4" style={{ margin: '1rem 0' }}>
+              <div className="space-y-6 my-6" style={{ margin: '1.5rem 0' }}>
                 {doc.compiledArticles.map((art) => (
                   <div 
                     key={art.id} 
                     className="article-block text-left"
-                    style={{ pageBreakInside: 'avoid', breakInside: 'avoid', marginBottom: '0.85rem', textAlign: 'left', fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '10pt', lineHeight: 1.28 }}
+                    style={{ pageBreakInside: 'avoid', breakInside: 'avoid', marginBottom: '1.65rem', textAlign: 'left', fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '10pt', lineHeight: 1.28 }}
                   >
                     <h3 
-                      className="font-bold uppercase text-slate-900 border-b border-slate-200 pb-1 mb-1.5 text-left"
-                      style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '10pt', fontWeight: 'bold', textTransform: 'uppercase', color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.2rem', marginBottom: '0.35rem', textAlign: 'left' }}
+                      className="font-bold uppercase text-slate-900 border-b border-slate-200 pb-1 mb-2 text-left"
+                      style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '10pt', fontWeight: 'bold', textTransform: 'uppercase', color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.25rem', marginBottom: '0.45rem', textAlign: 'left' }}
                     >
                       {art.title}
                     </h3>
@@ -200,8 +200,8 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
 
               {/* Footer Signatures */}
               <div 
-                className="signatures-block mt-8 pt-4 border-t-2 border-slate-900"
-                style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '9.5pt', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '2px solid #0f172a', pageBreakInside: 'avoid', breakInside: 'avoid' }}
+                className="signatures-block mt-10 pt-5 border-t-2 border-slate-900"
+                style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '9.5pt', marginTop: '2rem', paddingTop: '1.25rem', borderTop: '2px solid #0f172a', pageBreakInside: 'avoid', breakInside: 'avoid' }}
               >
                 <div 
                   className="whitespace-pre-line mb-4 text-left text-slate-700"

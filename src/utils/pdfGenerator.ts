@@ -76,14 +76,18 @@ export function printContractDocument(elementId: string): void {
             .article-block {
               page-break-inside: avoid !important;
               break-inside: avoid !important;
-              margin-bottom: 0.85rem !important;
+              margin-bottom: 1.65rem !important;
               font-size: 10pt !important;
               line-height: 1.28 !important;
+            }
+            .article-block h3 {
+              margin-bottom: 0.45rem !important;
+              padding-bottom: 0.25rem !important;
             }
             .signatures-block {
               page-break-inside: avoid !important;
               break-inside: avoid !important;
-              margin-top: 1.25rem !important;
+              margin-top: 2rem !important;
             }
             /* Sécurité d'affichage côte à côte des signatures */
             .signature-grid {
