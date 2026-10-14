@@ -54,7 +54,7 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
   };
 
   const handlePrint = () => {
-    printContractDocument('contract-document-preview');
+    printContractDocument('contract-document-preview', `${employeeData.lastName.toUpperCase()}_${employeeData.firstName}_${doc.title}`);
     if (onSavedToHistory) onSavedToHistory();
   };
 
@@ -120,6 +120,14 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
             >
               <X className="w-5 h-5" />
             </button>
+          </div>
+        </div>
+
+        {/* Info bar for PDF export */}
+        <div className="px-4 sm:px-6 py-2 bg-blue-50 border-b border-blue-200 text-blue-900 text-xs flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <span className="font-bold">💡 Impression & PDF :</span>
+            <span>Pour enregistrer au format PDF avec la pagination automatique du navigateur sans déformation de texte, cochez l'option <strong>« En-têtes et pieds de page »</strong> dans la boîte de dialogue d'impression.</span>
           </div>
         </div>
 
@@ -217,13 +225,13 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
                 </div>
 
                 <div 
-                  className="grid grid-cols-2 gap-6 pt-1 pb-4 signature-grid"
-                  style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', paddingTop: '0.25rem', paddingBottom: '1rem' }}
+                  className="signature-grid flex flex-row gap-6 pt-1 pb-4"
+                  style={{ display: 'flex', flexDirection: 'row', gap: '1.5rem', paddingTop: '0.25rem', paddingBottom: '1rem' }}
                 >
                   {/* Cadre signature employeur */}
                   <div 
-                    className="border-2 border-slate-400 bg-slate-50/50 rounded-lg p-4 h-40 sm:h-44 flex flex-col justify-between"
-                    style={{ border: '2px solid #94a3b8', backgroundColor: '#f8fafc', borderRadius: '0.5rem', padding: '1rem', height: '10.5rem', minHeight: '10.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}
+                    className="signature-box border-2 border-slate-400 bg-slate-50/50 rounded-lg p-4 flex flex-col justify-between"
+                    style={{ flex: '1 1 0%', border: '2px solid #94a3b8', backgroundColor: '#f8fafc', borderRadius: '0.5rem', padding: '1rem', minHeight: '9.5rem', height: 'auto', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}
                   >
                     <div>
                       <span 
@@ -249,8 +257,8 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
 
                   {/* Cadre signature salarié */}
                   <div 
-                    className="border-2 border-slate-400 bg-slate-50/50 rounded-lg p-4 h-40 sm:h-44 flex flex-col justify-between"
-                    style={{ border: '2px solid #94a3b8', backgroundColor: '#f8fafc', borderRadius: '0.5rem', padding: '1rem', height: '10.5rem', minHeight: '10.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}
+                    className="signature-box border-2 border-slate-400 bg-slate-50/50 rounded-lg p-4 flex flex-col justify-between"
+                    style={{ flex: '1 1 0%', border: '2px solid #94a3b8', backgroundColor: '#f8fafc', borderRadius: '0.5rem', padding: '1rem', minHeight: '9.5rem', height: 'auto', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}
                   >
                     <div>
                       <span 
@@ -276,25 +284,29 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
                 </div>
               </div>
 
-              {/* Vrai pied de page (note d'établissement à gauche + pagination à droite) */}
-              <div 
-                className="print-page-footer mt-6 pt-2 border-t border-slate-300 flex items-end justify-between text-slate-500"
-                style={{ marginTop: '1.5rem', paddingTop: '0.5rem', borderTop: '1px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '7.5pt', color: '#64748b', lineHeight: 1.25 }}
-              >
+              {/* Note d'établissement en pied de document (strictement en fin de document, uniquement sur la dernière page) */}
+              {employeeData.establishmentFooterText && (
                 <div 
-                  className="print-page-footer-left text-left whitespace-pre-line"
-                  style={{ textAlign: 'left', whiteSpace: 'pre-line', maxWidth: '85%' }}
+                  className="contract-footer-note mt-8 pt-3 border-t border-slate-300 text-left text-slate-500 whitespace-pre-line"
+                  style={{
+                    marginTop: '2rem',
+                    paddingTop: '0.75rem',
+                    borderTop: '1px solid #cbd5e1',
+                    textAlign: 'left',
+                    fontFamily: 'Verdana, Geneva, sans-serif',
+                    fontSize: '7.5pt',
+                    color: '#64748b',
+                    lineHeight: 1.25,
+                    whiteSpace: 'pre-line',
+                    pageBreakInside: 'avoid',
+                    breakInside: 'avoid',
+                    display: 'block',
+                    position: 'static',
+                  }}
                 >
-                  {employeeData.establishmentFooterText || ''}
+                  {employeeData.establishmentFooterText}
                 </div>
-                <div 
-                  className="print-page-footer-right text-right"
-                  style={{ textAlign: 'right', whiteSpace: 'nowrap' }}
-                >
-                  <span className="screen-page-counter">Page 1</span>
-                  <span className="print-page-counter"></span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

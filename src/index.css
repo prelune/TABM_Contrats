@@ -5,8 +5,9 @@
   html, body {
     background-color: #ffffff !important;
     color: #0f172a !important;
-    font-size: 11pt !important;
-    line-height: 1.5 !important;
+    font-family: Verdana, Geneva, sans-serif !important;
+    font-size: 10pt !important;
+    line-height: 1.28 !important;
     margin: 0 !important;
     padding: 0 !important;
     -webkit-print-color-adjust: exact !important;
@@ -35,13 +36,19 @@
     border: none !important;
     box-shadow: none !important;
     background: #ffffff !important;
+    font-family: Verdana, Geneva, sans-serif !important;
+    font-size: 10pt !important;
+    line-height: 1.28 !important;
   }
 
-  /* Éviter les coupures de paragraphes et de signatures au milieu d'une page */
+  /* Éviter les coupures orphelines des articles et assurer une séparation aérée */
   .article-block {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    margin-bottom: 1.25rem !important;
+    margin-bottom: 1.5rem !important;
+    font-family: Verdana, Geneva, sans-serif !important;
+    font-size: 10pt !important;
+    line-height: 1.28 !important;
   }
 
   .signatures-block {
@@ -51,9 +58,25 @@
   }
 
   .signature-grid {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 2rem !important;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 1.5rem !important;
+  }
+
+  .contract-footer-note {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-top: 2rem !important;
+    padding-top: 0.75rem !important;
+    border-top: 1px solid #cbd5e1 !important;
+    font-family: Verdana, Geneva, sans-serif !important;
+    font-size: 7.5pt !important;
+    color: #64748b !important;
+    line-height: 1.25 !important;
+    text-align: left !important;
+    white-space: pre-line !important;
+    display: block !important;
+    position: static !important;
   }
 
   @page {
