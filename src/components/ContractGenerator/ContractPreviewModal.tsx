@@ -127,7 +127,7 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
         <div className="px-4 sm:px-6 py-2 bg-blue-50 border-b border-blue-200 text-blue-900 text-xs flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <span className="font-bold">💡 Impression & PDF :</span>
-            <span>Pour enregistrer au format PDF avec la pagination automatique du navigateur sans déformation de texte, cochez l'option <strong>« En-têtes et pieds de page »</strong> dans la boîte de dialogue d'impression.</span>
+            <span>Dans la boîte d'impression, veillez à laisser <strong>décochée</strong> l'option <strong>« En-têtes et pieds de page »</strong> pour masquer l'URL et les mentions parasites du navigateur, puis sélectionnez <strong>« Enregistrer au format PDF »</strong>.</span>
           </div>
         </div>
 
@@ -143,8 +143,8 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
               {/* Header: Photo / Logo uniquement */}
               {employeeData.establishmentLogoUrl ? (
                 <div 
-                  className="pb-3 mb-4 border-b border-slate-200 flex items-center justify-start"
-                  style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}
+                  className="pb-3 mb-3 border-b border-slate-200 flex items-center justify-start"
+                  style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '0.65rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}
                 >
                   <img 
                     src={employeeData.establishmentLogoUrl} 
@@ -157,8 +157,8 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
 
               {/* Document Title */}
               <div 
-                className="text-center my-4 py-2 border-y border-slate-300"
-                style={{ textAlign: 'center', margin: '1rem 0', padding: '0.5rem 0', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1' }}
+                className="text-center my-3 py-1.5 border-y border-slate-300"
+                style={{ textAlign: 'center', margin: '0.75rem 0', padding: '0.4rem 0', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1' }}
               >
                 <h1 
                   className="font-bold tracking-wide uppercase text-slate-900"
@@ -174,31 +174,76 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
                 </p>
               </div>
 
-              {/* Parties */}
+              {/* Parties - pas de saut de page après ce bloc */}
               <div 
-                className="my-4 whitespace-pre-line text-left bg-slate-50 p-3.5 rounded border border-slate-200"
-                style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '9.5pt', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.375rem', padding: '0.85rem', margin: '1rem 0', whiteSpace: 'pre-line', textAlign: 'left', lineHeight: 1.28, color: '#1e293b' }}
+                className="parties-block my-3 whitespace-pre-line text-left bg-slate-50 p-3 rounded border border-slate-200"
+                style={{ 
+                  fontFamily: 'Verdana, Geneva, sans-serif', 
+                  fontSize: '9pt', 
+                  backgroundColor: '#f8fafc', 
+                  border: '1px solid #e2e8f0', 
+                  borderRadius: '0.375rem', 
+                  padding: '0.65rem 0.85rem', 
+                  margin: '0.65rem 0', 
+                  whiteSpace: 'pre-line', 
+                  textAlign: 'left', 
+                  lineHeight: 1.25, 
+                  color: '#1e293b',
+                  pageBreakAfter: 'avoid',
+                  breakAfter: 'avoid',
+                  pageBreakInside: 'avoid',
+                  breakInside: 'avoid'
+                }}
               >
                 {doc.partiesHtml}
               </div>
 
               {/* Articles strictly numbered sequentially */}
-              <div className="space-y-6 my-6" style={{ margin: '1.5rem 0' }}>
-                {doc.compiledArticles.map((art) => (
+              <div className="articles-container my-4" style={{ margin: '0.85rem 0' }}>
+                {doc.compiledArticles.map((art, index) => (
                   <div 
                     key={art.id} 
                     className="article-block text-left"
-                    style={{ pageBreakInside: 'avoid', breakInside: 'avoid', marginBottom: '1.65rem', textAlign: 'left', fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '10pt', lineHeight: 1.28 }}
+                    style={{ 
+                      pageBreakInside: 'avoid', 
+                      breakInside: 'avoid', 
+                      marginTop: index === 0 ? '0.5rem' : '0',
+                      marginBottom: '2.25rem', 
+                      textAlign: 'left', 
+                      fontFamily: 'Verdana, Geneva, sans-serif', 
+                      fontSize: '10pt', 
+                      lineHeight: 1.28,
+                      ...(index === 0 ? { pageBreakBefore: 'avoid', breakBefore: 'avoid' } : {})
+                    }}
                   >
                     <h3 
                       className="font-bold uppercase text-slate-900 border-b border-slate-200 pb-1 mb-2 text-left"
-                      style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '10pt', fontWeight: 'bold', textTransform: 'uppercase', color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.25rem', marginBottom: '0.45rem', textAlign: 'left' }}
+                      style={{ 
+                        fontFamily: 'Verdana, Geneva, sans-serif', 
+                        fontSize: '10pt', 
+                        fontWeight: 'bold', 
+                        textTransform: 'uppercase', 
+                        color: '#0f172a', 
+                        borderBottom: '1px solid #e2e8f0', 
+                        paddingBottom: '0.25rem', 
+                        marginBottom: '0.5rem', 
+                        textAlign: 'left',
+                        pageBreakAfter: 'avoid',
+                        breakAfter: 'avoid'
+                      }}
                     >
                       {art.title}
                     </h3>
                     <div 
-                      className="whitespace-pre-line text-slate-800 text-left"
-                      style={{ fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '10pt', whiteSpace: 'pre-line', textAlign: 'left', lineHeight: 1.28, color: '#1e293b' }}
+                      className="whitespace-pre-wrap text-slate-800 text-left"
+                      style={{ 
+                        fontFamily: 'Verdana, Geneva, sans-serif', 
+                        fontSize: '10pt', 
+                        whiteSpace: 'pre-wrap', 
+                        textAlign: 'left', 
+                        lineHeight: 1.28, 
+                        color: '#1e293b' 
+                      }}
                     >
                       {art.text}
                     </div>

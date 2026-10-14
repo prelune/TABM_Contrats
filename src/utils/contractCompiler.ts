@@ -267,21 +267,15 @@ Demeurant : ${data.address}, ${data.postalCode} ${data.city}
 Né(e) le : ${formatDateFrench(data.birthDate)} à ${data.birthPlace}
 De nationalité : ${data.nationality}`;
 
-  const partiesHtml = `
-ENTRE LES SOUSSIGNÉS :
-
+  const partiesHtml = `ENTRE LES SOUSSIGNÉS :
 ${companyPreamble}
-
 D'une part,
 
 ET :
-
 ${employeePreamble}
-
 D'autre part,
 
-IL A ÉTÉ CONVENU ET ARRÊTÉ CE QUI SUIT :
-  `.trim();
+IL A ÉTÉ CONVENU ET ARRÊTÉ CE QUI SUIT :`.trim();
 
   // Footer: strictly keep the customizable footer text (note de bas de page) from settings
   const legalFooter = data.establishmentFooterText ? data.establishmentFooterText.trim() : '';

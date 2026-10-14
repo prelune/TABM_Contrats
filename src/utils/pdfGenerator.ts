@@ -84,22 +84,44 @@ export function printContractDocument(elementId: string, documentTitle: string =
               font-family: Verdana, Geneva, sans-serif !important;
             }
             /* Respect strict de la disposition des blocs sans coupure orpheline */
+            .parties-block {
+              page-break-after: avoid !important;
+              break-after: avoid !important;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+              margin-top: 0.65rem !important;
+              margin-bottom: 0.75rem !important;
+              padding: 0.65rem 0.85rem !important;
+            }
+            .articles-container {
+              margin-top: 0.75rem !important;
+              margin-bottom: 1.5rem !important;
+            }
             .article-block {
               page-break-inside: avoid !important;
               break-inside: avoid !important;
-              margin-bottom: 1.5rem !important;
+              margin-top: 0 !important;
+              margin-bottom: 2.25rem !important;
+              padding-bottom: 0.25rem !important;
               font-family: Verdana, Geneva, sans-serif !important;
               font-size: 10pt !important;
               line-height: 1.28 !important;
             }
+            .article-block:first-of-type {
+              page-break-before: avoid !important;
+              break-before: avoid !important;
+              margin-top: 0.5rem !important;
+            }
             .article-block h3 {
+              page-break-after: avoid !important;
+              break-after: avoid !important;
               font-size: 10pt !important;
               font-weight: bold !important;
               text-transform: uppercase !important;
               color: #0f172a !important;
               border-bottom: 1px solid #e2e8f0 !important;
               padding-bottom: 0.25rem !important;
-              margin-bottom: 0.45rem !important;
+              margin-bottom: 0.5rem !important;
               line-height: 1.25 !important;
             }
             .article-block div {
@@ -107,6 +129,8 @@ export function printContractDocument(elementId: string, documentTitle: string =
               font-size: 10pt !important;
               line-height: 1.28 !important;
               color: #1e293b !important;
+              white-space: pre-wrap !important;
+              word-break: break-word !important;
             }
             .signatures-block {
               page-break-inside: avoid !important;
